@@ -24,6 +24,7 @@
         .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #fff; margin-bottom: 10px; }
         .checkbox-item { display: flex; align-items: center; gap: 5px; }
         .event-action-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; }
+        .closed-banner { background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-weight: bold; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -86,7 +87,6 @@ class PlayerConfig extends AppConfig {
     // --- Hook overrides ---
 
     async onLoginSuccess() {
-        // If admin, show link to admin dashboard
         if (this.currentUser.access_level === 'admin') {
             document.getElementById('admin-link').classList.remove('hidden');
         }
@@ -147,7 +147,15 @@ class PlayerConfig extends AppConfig {
         const disableAttr = ev.is_active ? '' : 'disabled';
         const submitBtnStyle = ev.is_active ? '' : 'style="display:none;"';
 
-        root.innerHTML = '<div class="event-section" id="workspace-block-' + ev.event_id + '" style="background:#fff; margin-top:20px;"><h2>Event form: ' + ev.event_title + '</h2><div style="background:#f0f0f0; padding:10px; border-radius:4px; margin-bottom:15px; white-space:pre-wrap;">' + (ev.strategy_text || 'No strategic information.') + '</div><form onsubmit="app.handleFormSubmit(event)"><fieldset ' + disableAttr + ' style="border:none; padding:0; margin:0;"><div id="form-inner-slots"></div><button type="submit" class="btn" ' + submitBtnStyle + ' style="margin-top:15px;">Submit Response</button></fieldset></form></div>';
+        // Closed-event banner: shows when event is not active, explaining the form is read-only
+        const closedBanner = ev.is_active ? '' : '<div class="closed-banner">⚠️ This event is closed. You can review your previous submission below but cannot make changes.</div>';
+
+        // If closed and no previous submission, show a different message
+        const noSubmissionMsg = (!ev.is_active && !this.currentFocusedUserResponse)
+            ? '<div class="closed-banner">⚠️ This event is closed. You did not submit a form for this event.</div>'
+            : closedBanner;
+
+        root.innerHTML = '<div class="event-section" id="workspace-block-' + ev.event_id + '" style="background:#fff; margin-top:20px;"><h2>Event form: ' + ev.event_title + '</h2>' + noSubmissionMsg + '<div style="background:#f0f0f0; padding:10px; border-radius:4px; margin-bottom:15px; white-space:pre-wrap;">' + (ev.strategy_text || 'No strategic information.') + '</div><form onsubmit="app.handleFormSubmit(event)"><fieldset ' + disableAttr + ' style="border:none; padding:0; margin:0;"><div id="form-inner-slots"></div><button type="submit" class="btn" ' + submitBtnStyle + ' style="margin-top:15px;">Submit Response</button></fieldset></form></div>';
 
         this.buildInnerFormMarkup(ev.event_type);
         this.populateFormFieldsFromMemory(ev.event_type);
