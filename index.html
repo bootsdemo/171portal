@@ -49,8 +49,9 @@
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
         .tab { flex: 1; text-align: center; padding: 8px; background: #0f1317; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .tab.active { background: #2e3b4e; color: var(--accent-orange); border-color: var(--accent-orange); }
-        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 180px; overflow-y: auto; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); border-radius: 4px; }
-        .checkbox-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .checkbox-grid { display: grid; grid-template-columns: 1fr; gap: 10px; max-height: 250px; overflow-y: auto; padding: 15px; background: #0f1317; border: 1px solid var(--border-color); border-radius: 4px; }
+        .checkbox-item { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 4px 0; }
+        .checkbox-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
         .summary-bar { background: #232d37; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 12px; border-left: 4px solid var(--accent-orange); }
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
@@ -401,6 +402,7 @@ class AppConfig {
                     <div class="toggle-btn" id="t-d1-n-${eventId}" onclick="app.setFormToggle('${eventId}','d1',false)">NO</div>
                 </div>
                 <div id="fields-${eventId}-d1" class="hidden">
+                    <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
                     <div class="checkbox-grid" id="grid-${eventId}-d1" style="margin-bottom:10px;"></div>
                     <input type="number" id="input-${eventId}-d1-speeds" placeholder="Construction Speedups (Whole Days)" style="margin-bottom:5px;">
                     <input type="number" id="input-${eventId}-d1-gold" placeholder="True Gold Value" style="margin-bottom:5px;">
@@ -414,6 +416,7 @@ class AppConfig {
                     <div class="toggle-btn" id="t-d2-n-${eventId}" onclick="app.setFormToggle('${eventId}','d2',false)">NO</div>
                 </div>
                 <div id="fields-${eventId}-d2" class="hidden">
+                    <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
                     <div class="checkbox-grid" id="grid-${eventId}-d2" style="margin-bottom:10px;"></div>
                     <input type="number" id="input-${eventId}-d2-speeds" placeholder="Research Speedups (Whole Days)" style="margin-bottom:5px;">
                     <input type="number" id="input-${eventId}-d2-dust" placeholder="True Gold Dust Quantity">
@@ -426,6 +429,7 @@ class AppConfig {
                     <div class="toggle-btn" id="t-d3-n-${eventId}" onclick="app.setFormToggle('${eventId}','d3',false)">NO</div>
                 </div>
                 <div id="fields-${eventId}-d3" class="hidden">
+                    <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
                     <div class="checkbox-grid" id="grid-${eventId}-d3" style="margin-bottom:10px;"></div>
                     <input type="number" id="input-${eventId}-d3-speeds" placeholder="Training Speedups (Whole Days)">
                 </div>
@@ -436,7 +440,7 @@ class AppConfig {
                 grid.innerHTML = TIME_SLOTS.map((slot, i) => `
                     <div class="checkbox-item">
                         <input type="checkbox" id="chk-${eventId}-${day}-${i}" value="${slot}">
-                        <span title="${slot}">${slot.split(' ')[0]}</span>
+                        <span>${slot}</span>
                     </div>`).join('');
             });
         } else {
