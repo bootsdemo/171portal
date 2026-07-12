@@ -280,11 +280,27 @@ class AppConfig {
             return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div>' + signupBtn + '</div></div>';
         }).join('');
     }
+    // FIX: fetch participations and players separately, then merge in JS (no FK needed)
+    async fetchParticipationsWithPlayers(eventId) {
+        const { data: parts, error: partsErr } = await _supabase.from('event_participations').select('*').eq('event_id', eventId).order('updated_at', { ascending: false });
+        if (partsErr) throw partsErr;
+        const { data: playersData, error: playersErr } = await _supabase.from('players').select('*');
+        if (playersErr) throw playersErr;
+        const playerMap = {};
+        (playersData || []).forEach(p => { playerMap[p.player_id] = p; });
+        return (parts || []).map(p => {
+            if (p.player_responses && typeof p.player_responses === 'string') {
+                try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); }
+            }
+            p.players = playerMap[p.player_id] || null;
+            return p;
+        });
+    }
     async viewLatestSignup(eventId) {
         const ev = this.eventsList.find(e => e.event_id === eventId); if (!ev) return;
-        let { data: parts, error } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', eventId).order('updated_at', { ascending: false });
-        if (error) return alert("Failed to fetch sign up records: " + error.message);
-        parts = (parts || []).map(p => { if (p.player_responses && typeof p.player_responses === 'string') { try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); } } return p; });
+        let parts;
+        try { parts = await this.fetchParticipationsWithPlayers(eventId); }
+        catch (error) { return alert("Failed to fetch sign up records: " + error.message); }
         const display = document.getElementById('admin-signup-display');
         if (parts.length === 0) { display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="color:#666; text-align:center;">No players have submitted a form for this event yet.</p><button class="btn btn-secondary" onclick="app.closeSignupDisplay()">Close</button>'; display.scrollIntoView({ behavior: 'smooth' }); return; }
         const type = ev.event_type;
@@ -314,11 +330,11 @@ class AppConfig {
         display.scrollIntoView({ behavior: 'smooth' });
     }
     closeSignupDisplay() { const display = document.getElementById('admin-signup-display'); if (display) display.innerHTML = ''; }
+    // FIX: same two-query approach for overview
     async displayLatestOverviewUpdate() {
         if (!this.currentFocusedEvent) return; const eventId = this.currentFocusedEvent.event_id;
-        let { data: parts, error } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', eventId);
-        if(error) return alert("Failed to fetch matrix update metrics.");
-        this.currentEventOverviewData = (parts || []).map(p => { if (p.player_responses && typeof p.player_responses === 'string') { try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); } } return p; });
+        try { this.currentEventOverviewData = await this.fetchParticipationsWithPlayers(eventId); }
+        catch (error) { return alert("Failed to fetch matrix update metrics: " + error.message); }
         document.getElementById('table-overview').classList.remove('hidden'); this.drawOverviewGrid();
     }
     switchOverviewTab(dayNum) { this.currentMatrixTab = dayNum; this.drawOverviewGrid(); }
