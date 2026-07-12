@@ -26,14 +26,22 @@
         .logout-btn:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
         .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; margin-bottom: 20px; }
         .panel-title { font-size: 1.1rem; color: var(--accent-orange); margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .profile-card { background: #151b20; border-radius: 6px; padding: 15px; margin-bottom: 10px; border: 1px solid #232d37; }
+        .profile-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .meta-display-item { font-size: 14px; color: var(--text-main); }
+        .meta-display-item span { color: var(--text-muted); font-size: 12px; display: block; text-transform: uppercase; margin-bottom: 2px; }
+        .meta-display-item strong { color: var(--accent-orange); font-size: 15px; }
         .event-container { border: 2px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 30px; background: #151b20; }
         .event-container-title { color: var(--accent-orange); font-size: 1.3rem; font-weight: bold; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 2px solid var(--accent-orange); display: flex; justify-content: space-between; align-items: center; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; }
         input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); color: white; border-radius: 4px; font-size: 14px; }
+        input:disabled, select:disabled { background: #1a2229 !important; color: var(--text-muted) !important; cursor: not-allowed; border-color: #232d37; }
         textarea { height: 80px; resize: none; }
         .btn { background: var(--accent-orange); color: white; border: none; padding: 12px 20px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; }
         .btn:hover { opacity: 0.9; }
+        .btn-secondary { background: #2e3b4e; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-secondary:hover { border-color: var(--accent-orange); color: var(--accent-orange); }
         .toggle-group { display: flex; gap: 10px; margin-bottom: 10px; }
         .toggle-btn { flex: 1; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); color: var(--text-muted); text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .toggle-btn.active { background: var(--accent-orange); color: white; border-color: var(--accent-orange); }
@@ -74,28 +82,55 @@
     <!-- MAIN APP WRAPPER (HIDDEN UNTIL LOGIN) -->
     <div id="app-workspace" class="hidden">
         
-        <!-- 1. PROFILE SECTION (NOW FIXED AT THE TOP) -->
+        <!-- 1. YOUR PROFILE SECTION -->
         <div class="panel" id="global-profile-panel">
-            <div class="panel-title">🛡️ Player Military Profile</div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>City Level</label>
-                    <select id="profile-city" onchange="app.syncProfileToDatabase()"><option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option><option value="TG8">TG8</option></select>
+            <div class="panel-title">🛡️ Your Profile</div>
+            
+            <div class="profile-card">
+                <!-- Read-Only / Structural Identity Data Layer -->
+                <div class="profile-meta-grid">
+                    <div class="meta-display-item">
+                        <span>Player ID (Fixed)</span>
+                        <strong id="display-player-id">--</strong>
+                    </div>
+                    <div class="meta-display-item">
+                        <span>Player Name</span>
+                        <div id="wrapper-player-name">
+                            <strong id="display-player-name">--</strong>
+                        </div>
+                    </div>
+                    <div class="meta-display-item">
+                        <span>Home Alliance</span>
+                        <div id="wrapper-player-alliance">
+                            <strong id="display-player-alliance">--</strong>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Infantry Tier</label>
-                    <select id="profile-inf" onchange="app.syncProfileToDatabase()"><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+
+                <!-- Strategic Capabilities Metrics Configuration Block -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>City Level</label>
+                        <select id="profile-city" disabled><option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option><option value="TG8">TG8</option></select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Infantry Tier</label>
+                        <select id="profile-inf" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Cavalry Tier</label>
+                        <select id="profile-cav" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Archer Tier</label>
+                        <select id="profile-arch" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                    </div>
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Cavalry Tier</label>
-                    <select id="profile-cav" onchange="app.syncProfileToDatabase()"><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Archer Tier</label>
-                    <select id="profile-arch" onchange="app.syncProfileToDatabase()"><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                    <button id="profile-action-btn" class="btn btn-secondary" style="width: auto; padding: 8px 25px;" onclick="app.toggleProfileEditMode()">Edit Profile</button>
                 </div>
             </div>
-            <div style="margin-top: 10px; font-size: 11px; color: var(--text-muted); font-style: italic;">Changes made here instantly update your global status tracking fields across all active matrices.</div>
         </div>
 
         <!-- 2. ACTIVE OPERATIONS ARCHITECTURE DISPLAY ELEMENT -->
@@ -135,7 +170,6 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Create the standard 48 chronological tracking items
 const TIME_SLOTS = [];
 for (let h = 0; h < 24; h++) {
     let sh = String(h).padStart(2, '0');
@@ -151,15 +185,14 @@ class AppConfig {
         this.currentUser = null;
         this.activeEvents = [];
         this.allPlayers = [];
+        this.isEditingProfile = false;
         
-        // Dynamic map instances to isolate states for multiple parallel events
         this.eventFormStates = {}; 
         this.eventMatrixTabs = {}; 
         this.eventParticipations = {}; 
     }
 
     async init() {
-        // Initial silent dashboard check for open active records
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
     }
@@ -176,11 +209,8 @@ class AppConfig {
         document.getElementById('global-logout-btn').classList.remove('hidden');
         document.getElementById('app-workspace').classList.remove('hidden');
 
-        // Assign top level profile selector values
-        document.getElementById('profile-city').value = player.city_level || "TG5";
-        document.getElementById('profile-inf').value = player.infantry_tier || "TG10";
-        document.getElementById('profile-cav').value = player.cavalry_tier || "TG10";
-        document.getElementById('profile-arch').value = player.archer_tier || "TG10";
+        // Draw initial profile layout values
+        this.renderProfileSectionValues();
 
         if (player.access_level === 'admin') {
             document.getElementById('admin-control-cockpit').classList.remove('hidden');
@@ -194,6 +224,7 @@ class AppConfig {
 
     logout() {
         this.currentUser = null;
+        this.isEditingProfile = false;
         this.eventFormStates = {};
         this.eventMatrixTabs = {};
         this.eventParticipations = {};
@@ -203,23 +234,94 @@ class AppConfig {
         document.getElementById('login-panel').classList.remove('hidden');
     }
 
-    async syncProfileToDatabase() {
-        if(!this.currentUser) return;
-        const newStats = {
-            city_level: document.getElementById('profile-city').value,
-            infantry_tier: document.getElementById('profile-inf').value,
-            cavalry_tier: document.getElementById('profile-cav').value,
-            archer_tier: document.getElementById('profile-arch').value
-        };
-        await _supabase.from('players').update(newStats).eq('player_id', this.currentUser.player_id);
+    renderProfileSectionValues() {
+        if (!this.currentUser) return;
         
-        // Trigger live redraw across active display tables to match the configuration adjustments
-        await this.refreshGlobalDataMaps();
+        // Render Text elements
+        document.getElementById('display-player-id').innerText = this.currentUser.player_id;
+        
+        if (!this.isEditingProfile) {
+            document.getElementById('wrapper-player-name').innerHTML = `<strong id="display-player-name">${this.currentUser.player_name || '--'}</strong>`;
+            document.getElementById('wrapper-player-alliance').innerHTML = `<strong id="display-player-alliance">${this.currentUser.alliance_tag || 'Unassigned'}</strong>`;
+            
+            document.getElementById('profile-city').disabled = true;
+            document.getElementById('profile-inf').disabled = true;
+            document.getElementById('profile-cav').disabled = true;
+            document.getElementById('profile-arch').disabled = true;
+            
+            document.getElementById('profile-action-btn').innerText = "Edit Profile";
+            document.getElementById('profile-action-btn').className = "btn btn-secondary";
+        } else {
+            document.getElementById('wrapper-player-name').innerHTML = `<input type="text" id="edit-player-name" value="${this.currentUser.player_name || ''}" style="padding:5px 8px; font-size:13px;">`;
+            document.getElementById('wrapper-player-alliance').innerHTML = `<input type="text" id="edit-player-alliance" value="${this.currentUser.alliance_tag || ''}" placeholder="e.g., Zen" style="padding:5px 8px; font-size:13px;">`;
+            
+            document.getElementById('profile-city').disabled = false;
+            document.getElementById('profile-inf').disabled = false;
+            document.getElementById('profile-cav').disabled = false;
+            document.getElementById('profile-arch').disabled = false;
+            
+            document.getElementById('profile-action-btn').innerText = "Save Changes";
+            document.getElementById('profile-action-btn').className = "btn";
+        }
+
+        // Dropdown status maps
+        document.getElementById('profile-city').value = this.currentUser.city_level || "TG5";
+        document.getElementById('profile-inf').value = this.currentUser.infantry_tier || "TG10";
+        document.getElementById('profile-cav').value = this.currentUser.cavalry_tier || "TG10";
+        document.getElementById('profile-arch').value = this.currentUser.archer_tier || "TG10";
+    }
+
+    async toggleProfileEditMode() {
+        if (!this.isEditingProfile) {
+            // Enter edit mode
+            this.isEditingProfile = true;
+            this.renderProfileSectionValues();
+        } else {
+            // Save operations triggered
+            const targetName = document.getElementById('edit-player-name').value.trim();
+            const targetAlliance = document.getElementById('edit-player-alliance').value.trim();
+            
+            if(!targetName) return alert("Player Name cannot be completely blank.");
+
+            const updatedFields = {
+                player_name: targetName,
+                alliance_tag: targetAlliance,
+                city_level: document.getElementById('profile-city').value,
+                infantry_tier: document.getElementById('profile-inf').value,
+                cavalry_tier: document.getElementById('profile-cav').value,
+                archer_tier: document.getElementById('profile-arch').value
+            };
+
+            // Sync alterations to remote server database
+            const { error } = await _supabase.from('players').update(updatedFields).eq('player_id', this.currentUser.player_id);
+            
+            if (error) {
+                alert("Database transmission error sync aborted: " + error.message);
+                return;
+            }
+
+            // Update client configuration state object memory definitions
+            this.currentUser = { ...this.currentUser, ...updatedFields };
+            
+            // Return interface back to locked reading layout state rules
+            this.isEditingProfile = false;
+            this.renderProfileSectionValues();
+            
+            // Re-render live display matrix rows everywhere to capture the adjustments
+            await this.refreshGlobalDataMaps();
+            alert("Your military profile has been updated and synchronized!");
+        }
     }
 
     async refreshGlobalDataMaps() {
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
+
+        // Update tracking structures for all admins to mirror potential profile name revisions
+        if (this.currentUser.access_level === 'admin') {
+            let { data: roster } = await _supabase.from('players').select('*');
+            this.allPlayers = roster || [];
+        }
 
         for (const ev of this.activeEvents) {
             let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', ev.event_id);
@@ -244,8 +346,6 @@ class AppConfig {
 
         root.innerHTML = this.activeEvents.map(ev => {
             const state = this.eventFormStates[ev.event_id];
-            
-            // Generate proxy selection drop parameters if user is authenticated admin
             let adminProxyDrop = '';
             if (isAdmin) {
                 const options = this.allPlayers.map(p => `<option value="${p.player_id}" ${state.targetPlayerId === p.player_id ? 'selected' : ''}>Proxy: ${p.player_name}</option>`).join('');
@@ -264,44 +364,36 @@ class AppConfig {
                     <div style="white-space:pre-wrap; font-size:13px; color:#cbd5e1;">${ev.strategy_text || 'No directives logged.'}</div>
                 </div>
 
-                <!-- DYNAMIC REGISTRATION VIEW BOX -->
                 <div class="panel" style="background:#1e293b; border-color:#475569;">
                     <div class="panel-title">
                         <span>Registration Submission Form</span>
                         ${adminProxyDrop}
                     </div>
-                    
                     <form onsubmit="app.handleFormSubmit(event, '${ev.event_id}')">
                         <div id="form-inner-${ev.event_id}"></div>
                         <button type="submit" class="btn" style="margin-top:15px;">Lock Entry Selection</button>
                     </form>
                 </div>
 
-                <!-- REAL TIME GRID INTERFACE PANEL -->
                 <div class="panel">
                     <div class="panel-title">Live Deployment Matrix Room</div>
-                    
                     <div id="tabs-row-${ev.event_id}" class="tabs hidden">
                         <div class="tab" id="tab-${ev.event_id}-1" onclick="app.switchEventTab('${ev.event_id}', 1)">Day 1: Build</div>
                         <div class="tab" id="tab-${ev.event_id}-2" onclick="app.switchEventTab('${ev.event_id}', 2)">Day 2: Research</div>
                         <div class="tab" id="tab-${ev.event_id}-3" onclick="app.switchEventTab('${ev.event_id}', 3)">Day 3: Cooking</div>
                     </div>
-
                     <div id="summary-${ev.event_id}" class="summary-bar hidden"></div>
-
                     <div class="table-wrapper">
                         <table>
                             <thead><tr id="th-${ev.event_id}"><th>Player Name</th></tr></thead>
                             <tbody id="tb-${ev.event_id}"></tbody>
                         </table>
                     </div>
-                    
                     <button id="bulk-save-btn-${ev.event_id}" class="btn hidden" style="margin-top:15px; background:#2e3b4e; border:1px solid var(--accent-orange);" onclick="app.saveBulkCombatAssignments('${ev.event_id}')">Lock R4 Matrix Assignments</button>
                 </div>
             </div>`;
         }).join('');
 
-        // Inject fields and execute inner loops across sub-elements
         this.activeEvents.forEach(ev => {
             this.buildInnerFormMarkup(ev.event_id, ev.event_type);
             this.populateFormFieldsFromMemory(ev.event_id);
@@ -350,7 +442,6 @@ class AppConfig {
                 </div>
             </div>`;
             
-            // Loop checkbox lists dynamically
             ['d1','d2','d3'].forEach(day => {
                 const grid = document.getElementById(`grid-${eventId}-${day}`);
                 grid.innerHTML = TIME_SLOTS.map((slot, i) => `
@@ -360,7 +451,6 @@ class AppConfig {
                     </div>`).join('');
             });
         } else {
-            // Combat UI template allocation
             target.innerHTML = `
             <div class="form-group">
                 <label>Select Deployment Window Parameters:</label>
@@ -399,7 +489,6 @@ class AppConfig {
         const state = this.eventFormStates[eventId];
         const matchRecord = this.eventParticipations[eventId].find(p => p.player_id === state.targetPlayerId);
 
-        // Reset elements default clean structure rules
         if(ev.event_type === 'kvk_prep') {
             this.setFormToggle(eventId, 'd1', false); this.setFormToggle(eventId, 'd2', false); this.setFormToggle(eventId, 'd3', false);
             document.getElementById(`input-${eventId}-d1-speeds`).value = '';
@@ -465,7 +554,6 @@ class AppConfig {
             tabRow.classList.remove('hidden');
             banner.classList.remove('hidden');
             
-            // Highlight current tab button explicitly
             [1,2,3].forEach(d => {
                 const tabEl = document.getElementById(`tab-${eventId}-${d}`);
                 if(tabEl) tabEl.className = `tab ${d === currentTab ? 'active' : ''}`;
@@ -479,12 +567,11 @@ class AppConfig {
                 if(currentTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); }
             });
 
-            if(currentTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${activeTitleRequests} Requesting Title Blocks | Total Construction Speedups: ${aggregateSpeeds} Days | Total True Gold: ${resourceAgg}`;
-            if(currentTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${activeTitleRequests} Requesting Title Blocks | Total Research Speedups: ${aggregateSpeeds} Days | Total Dust Assets: ${resourceAgg}`;
-            if(currentTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${activeTitleRequests} Requesting Title Blocks | Total Training Speeds Logged: ${aggregateSpeeds} Days`;
+            if(currentTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold: ${resourceAgg}`;
+            if(currentTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
+            if(currentTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
 
-            th.innerHTML = `<th>Player Name</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
-            
+            th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
             tb.innerHTML = dataRows.map(p => {
                 const r = p.player_responses || {};
                 const user = p.players || { player_name: 'Unknown User' };
@@ -495,12 +582,11 @@ class AppConfig {
                 if(currentTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
                 if(currentTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
 
-                return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
+                return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.alliance_tag || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
             }).join('');
         } else {
-            // Battle view layout assignments mapping
             if(isAdmin) document.getElementById(`bulk-save-btn-${eventId}`).classList.remove('hidden');
-            th.innerHTML = `<th>Player Name</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
+            th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
             
             tb.innerHTML = dataRows.map((p, idx) => {
                 const r = p.player_responses || {};
@@ -515,6 +601,7 @@ class AppConfig {
                     return `
                     <tr>
                         <td><strong>${user.player_name}</strong></td>
+                        <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.alliance_tag || '--'}</span></td>
                         <td><span class="badge">${pStr}</span></td>
                         <td>${avStr}</td>
                         <td>
@@ -528,7 +615,7 @@ class AppConfig {
                         </td>
                     </tr>`;
                 } else {
-                    return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
+                    return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.alliance_tag || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
                 }
             }).join('');
         }
@@ -612,8 +699,6 @@ class AppConfig {
 
         if(!title) return alert("Operation title required.");
 
-        // NOTE: We no longer automatically set previous entries to False. 
-        // This allows multiple active rows to run concurrently on the interface!
         await _supabase.from('events').insert({
             event_title: title,
             event_type: type,
