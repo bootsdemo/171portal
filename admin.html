@@ -6,26 +6,33 @@
     <title>171 Admin Portal</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1, h2, h3 { color: #333; }
+        body { font-family: Arial, sans-serif; background-color: #1a1d29; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #242838; padding: 20px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+        h1, h2, h3 { color: #e0e0e0; }
+        h1 { border-bottom: 2px solid #4a5a7a; padding-bottom: 10px; }
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .btn { background-color: #0056b3; color: #fff; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
-        .btn:hover { background-color: #004080; }
-        .btn-secondary { background-color: #6c757d; }
-        .btn-secondary:hover { background-color: #5a6268; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; color: #b0b8c8; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #3a4055; border-radius: 4px; background: #2d3142; color: #e0e0e0; }
+        .btn { background-color: #3b82f6; color: #fff; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn:hover { background-color: #2563eb; }
+        .btn-secondary { background-color: #4b5563; }
+        .btn-secondary:hover { background-color: #374151; }
+        .btn-success { background-color: #059669; }
+        .btn-success:hover { background-color: #047857; }
+        .btn-warning { background-color: #d97706; }
+        .btn-warning:hover { background-color: #b45309; }
         .hidden { display: none !important; }
-        .profile-section, .admin-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
+        .admin-section { margin-bottom: 30px; padding: 15px; border: 1px solid #3a4055; border-radius: 4px; background: #2d3142; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .tabs { display: flex; gap: 5px; margin-bottom: 10px; }
-        .tab { padding: 8px 15px; background: #e0e0e0; cursor: pointer; border-radius: 4px 4px 0 0; }
-        .tab.active { background: #0056b3; color: white; }
-        .summary-bar { background: #eef6ff; padding: 10px; border-left: 4px solid #0056b3; margin-bottom: 10px; font-weight: bold; }
-        .event-action-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; }
+        th, td { border: 1px solid #3a4055; padding: 8px; text-align: left; }
+        th { background-color: #1e212e; color: #b0b8c8; }
+        td { color: #d0d4dc; }
+        .event-action-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #2d3142; border: 1px solid #3a4055; margin-bottom: 8px; border-radius: 4px; }
+        .login-panel-dark { max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #3a4055; border-radius: 4px; background: #242838; }
+        .login-panel-dark h3 { color: #e0e0e0; }
+        .login-panel-dark label { color: #b0b8c8; }
+        .header-link { font-size: 13px; color: #60a5fa; text-decoration: none; }
+        .header-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -33,13 +40,13 @@
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>171 Admin Portal</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="index.html" style="font-size: 13px; color: #0056b3;">← Player View</a>
+            <a href="index.html" class="header-link">← Player View</a>
             <button id="global-logout-btn" class="btn btn-secondary hidden" onclick="app.logout()">Log Out</button>
         </div>
     </header>
 
     <!-- Login -->
-    <div id="login-panel" style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 4px;">
+    <div id="login-panel" class="login-panel-dark">
         <h3>Admin Login</h3>
         <div class="form-group">
             <label for="login-id">Player ID:</label>
@@ -51,35 +58,18 @@
     <!-- Admin Workspace -->
     <div id="app-workspace" class="hidden">
 
-        <!-- Profile (shared) -->
-        <div class="profile-section" id="player-profile-card">
-            <h2>My profile</h2>
-            <div class="form-group">
-                <p><strong>Player ID:</strong> <span id="display-player-id">--</span></p>
-                <div id="wrapper-player-name"><strong>Player Name:</strong> <span id="display-player-name">--</span></div>
-                <div id="wrapper-player-alliance" style="margin-top: 5px;"><strong>Alliance:</strong> <span id="display-player-alliance">--</span></div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-                <div class="form-group"><label>City Level:</label><select id="profile-city" disabled><option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option><option value="TG8">TG8</option><option value="TG9">TG9</option><option value="TG10">TG10</option></select></div>
-                <div class="form-group"><label>Infantry Level:</label><select id="profile-inf" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
-                <div class="form-group"><label>Cavalry Level:</label><select id="profile-cav" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
-                <div class="form-group"><label>Archer Level:</label><select id="profile-arch" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
-            </div>
-            <button id="profile-action-btn" class="btn btn-secondary" style="margin-top: 10px;" onclick="app.toggleProfileEditMode()">Edit Profile</button>
-        </div>
-
         <!-- Manage events -->
         <div class="admin-section">
             <h2>Manage events</h2>
             <button class="btn" id="admin-init-create-btn" onclick="app.showAdminCreateForm()">Create events</button>
-            <div id="admin-create-form-wrapper" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc;">
+            <div id="admin-create-form-wrapper" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #3a4055;">
                 <div class="form-group"><label>Event Title</label><input type="text" id="adm-title"></div>
-                <div class="form-group"><label>Event Type</label><select id="adm-type" onchange="app.handleAdminTemplatePopulate()"><option value="kvk_prep">KVK Preparation</option><option value="kvk_battle">KVK Battle</option></select></div>
+                <div class="form-group"><label>Event Type</label><select id="adm-type" onchange="app.handleAdminTemplatePopulate()"><option value="kvk_prep">KVK Preparation</option><option value="kvk_battle">KVK Battle</option><option value="tyrant_battle">Tyrant Battle</option></select></div>
                 <div class="form-group"><label>Strategy Text</label><textarea id="adm-strategy"></textarea></div>
                 <button class="btn" onclick="app.launchNewOperation()">Submit New Event</button>
                 <button class="btn btn-secondary" onclick="app.hideAdminCreateForm()">Cancel</button>
             </div>
-            <div id="admin-event-list" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc;"></div>
+            <div id="admin-event-list" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #3a4055;"></div>
             <div id="admin-signup-display" style="margin-top: 20px;"></div>
         </div>
 
@@ -88,18 +78,11 @@
 
 <script src="shared.js"></script>
 <script>
-// AdminConfig extends AppConfig with admin-only features.
 class AdminConfig extends AppConfig {
-    constructor() {
-        super();
-        this.currentEventOverviewData = [];
-        this.currentMatrixTab = 1;
-    }
 
     // --- Hook overrides ---
 
     async onLoginSuccess() {
-        // Guard: kick non-admins back to player page
         if (this.currentUser.access_level !== 'admin') {
             alert("Admin access required. Redirecting to player portal.");
             window.location.href = 'index.html';
@@ -140,7 +123,8 @@ class AdminConfig extends AppConfig {
         const type = typeEl.value;
         const baseTemplates = {
             kvk_prep: "KVK PREPARATION PHASE\n• Complete target declarations below.",
-            kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below."
+            kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below.",
+            tyrant_battle: "TYRANT BATTLE\n• Deploy forces and coordinate attacks below."
         };
         document.getElementById('adm-strategy').value = baseTemplates[type];
     }
@@ -157,24 +141,32 @@ class AdminConfig extends AppConfig {
     }
 
 
-    // --- Admin: event list ---
+    // --- Admin: event list with toggle ---
 
     renderAdminEventList() {
         const target = document.getElementById('admin-event-list');
         if (!target) return;
         if (this.eventsList.length === 0) {
-            target.innerHTML = '<p style="color:#666; text-align:center;">No events created yet.</p>';
+            target.innerHTML = '<p style="color:#888; text-align:center;">No events created yet.</p>';
             return;
         }
         target.innerHTML = this.eventsList.map(ev => {
             const statusLabel = ev.is_active
-                ? '<span style="color:green; font-weight:bold;">[Active]</span>'
-                : '<span style="color:#666;">[Closed]</span>';
-            const signupBtn = ev.is_active
-                ? '<button class="btn btn-secondary" onclick="app.viewLatestSignup(\'' + ev.event_id + '\')">View latest sign up</button>'
-                : '<span style="color:#999; font-size:12px;">Sign up view available when active</span>';
-            return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div>' + signupBtn + '</div></div>';
+                ? '<span style="color:#34d399; font-weight:bold;">[Active]</span>'
+                : '<span style="color:#9ca3af;">[Closed]</span>';
+            const toggleBtn = ev.is_active
+                ? '<button class="btn btn-warning" onclick="app.toggleEventStatus(\'' + ev.event_id + '\', false)">Close Event</button>'
+                : '<button class="btn btn-success" onclick="app.toggleEventStatus(\'' + ev.event_id + '\', true)">Activate Event</button>';
+            const signupBtn = '<button class="btn btn-secondary" style="margin-left:5px;" onclick="app.viewLatestSignup(\'' + ev.event_id + '\')">View latest sign up</button>';
+            return '<div class="event-action-item"><div><strong style="color:#e0e0e0;">' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div style="display:flex; gap:5px;">' + toggleBtn + signupBtn + '</div></div>';
         }).join('');
+    }
+
+    async toggleEventStatus(eventId, newStatus) {
+        const { error } = await _supabase.from('events')
+            .update({ is_active: newStatus }).eq('event_id', eventId);
+        if (error) return alert("Failed to update event status: " + error.message);
+        await this.loadEvents();
     }
 
 
@@ -190,7 +182,7 @@ class AdminConfig extends AppConfig {
 
         const display = document.getElementById('admin-signup-display');
         if (parts.length === 0) {
-            display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="color:#666; text-align:center;">No players have submitted a form for this event yet.</p><button class="btn btn-secondary" onclick="app.closeSignupDisplay()">Close</button>';
+            display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="color:#888; text-align:center;">No players have submitted a form for this event yet.</p><button class="btn btn-secondary" onclick="app.closeSignupDisplay()">Close</button>';
             display.scrollIntoView({ behavior: 'smooth' });
             return;
         }
@@ -210,6 +202,11 @@ class AdminConfig extends AppConfig {
                 lines.push('Day 3 (Cooking): ' + (r.d3_opt_in ? '✅ Yes' : '❌ No'));
                 if (r.d3_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d3_speeds || 0) + 'd | Slots: ' + (r.d3_slots || []).length);
                 details = lines.join('<br>');
+            } else if (type === 'tyrant_battle') {
+                const lines = [];
+                lines.push('Status: ' + (r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'));
+                if (r.custom_hours) lines.push('Notes: "' + r.custom_hours + '"');
+                details = lines.join('<br>');
             } else {
                 const lines = [];
                 lines.push('Status: ' + (r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'));
@@ -217,10 +214,10 @@ class AdminConfig extends AppConfig {
                 details = lines.join('<br>');
             }
             const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
-            return '<tr><td><strong>' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
+            return '<tr><td><strong style="color:#e0e0e0;">' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
         }).join('');
 
-        display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="font-size:13px; color:#666; margin-bottom:10px;">' + parts.length + ' player(s) have submitted a form.</p><table><thead><tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th><th>Submitted At</th></tr></thead><tbody>' + rows + '</tbody></table><button class="btn btn-secondary" style="margin-top:15px;" onclick="app.closeSignupDisplay()">Close</button>';
+        display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="font-size:13px; color:#888; margin-bottom:10px;">' + parts.length + ' player(s) have submitted a form.</p><table><thead><tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th><th>Submitted At</th></tr></thead><tbody>' + rows + '</tbody></table><button class="btn btn-secondary" style="margin-top:15px;" onclick="app.closeSignupDisplay()">Close</button>';
         display.scrollIntoView({ behavior: 'smooth' });
     }
 
