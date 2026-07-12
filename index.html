@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alliance Command Center Matrix</title>
+    <title>Alliance Command Center</title>
+    <!-- Supabase JS Client Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -189,9 +191,18 @@
             justify-content: space-between;
             align-items: center;
         }
+
+        .event-action-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #0f1317;
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
     </style>
-    <!-- Supabase JS Client Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -214,7 +225,7 @@
     <!-- Protected Global Application Workspace Context -->
     <div id="app-workspace" class="hidden">
         
-        <!-- Military Profile Section Dashboard -->
+        <!-- Military Profile Section Dashboard (Stays As Is) -->
         <div class="panel" id="player-profile-card">
             <div class="panel-title">
                 <span>Personal Personnel Deployment Roster Profile</span>
@@ -279,8 +290,16 @@
             </div>
         </div>
 
-        <!-- Dynamic Live Operation Activity Target Target Root Hook -->
-        <div id="active-events-root"></div>
+        <!-- Event Actions Navigation List Dashboard Grid -->
+        <div class="panel" id="event-actions-panel">
+            <div class="panel-title">Available Strategic Operations Hub</div>
+            <div id="event-navigation-list">
+                <!-- Dynamically loaded events list populated here -->
+            </div>
+        </div>
+
+        <!-- On-Demand Active Workspace Shell Framework Hook -->
+        <div id="focused-event-workspace-root"></div>
 
     </div>
 </div>
@@ -306,20 +325,19 @@ TIME_SLOTS.push("23.45 utc - 00.15 utc (end of the day)");
 class AppConfig {
     constructor() {
         this.currentUser = null;
-        this.activeEvents = [];
+        this.eventsList = [];
         this.allPlayers = [];
         this.isEditingProfile = false;
         
-        this.eventFormStates = {}; 
-        this.eventMatrixTabs = {}; 
-        this.eventParticipations = {}; 
+        // Active states managed strictly for the single lazily expanded operation
+        this.currentFocusedEvent = null;
+        this.currentFocusedUserResponse = null; 
+        this.currentEventOverviewData = [];
+        this.currentMatrixTab = 1;
     }
 
     async init() {
         try {
-            let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
-            this.activeEvents = events || [];
-            
             const savedId = localStorage.getItem('alliance_matrix_player_id');
             if (savedId) {
                 document.getElementById('login-id').value = savedId;
@@ -353,20 +371,21 @@ class AppConfig {
             this.handleAdminTemplatePopulate();
         }
 
-        await this.refreshGlobalDataMaps();
+        await this.loadOperationsNavigationList();
     }
 
     logout() {
         this.currentUser = null;
         this.isEditingProfile = false;
-        this.eventFormStates = {};
-        this.eventMatrixTabs = {};
-        this.eventParticipations = {};
+        this.currentFocusedEvent = null;
+        this.currentFocusedUserResponse = null;
+        this.currentEventOverviewData = [];
         localStorage.removeItem('alliance_matrix_player_id');
         document.getElementById('login-id').value = '';
         document.getElementById('app-workspace').classList.add('hidden');
         document.getElementById('global-logout-btn').classList.add('hidden');
         document.getElementById('login-panel').classList.remove('hidden');
+        document.getElementById('focused-event-workspace-root').innerHTML = '';
     }
 
     renderProfileSectionValues() {
@@ -434,315 +453,409 @@ class AppConfig {
             this.isEditingProfile = false;
             this.renderProfileSectionValues();
             
-            await this.refreshGlobalDataMaps();
             alert("Your military profile has been updated and synchronized!");
         }
     }
 
-    async refreshGlobalDataMaps() {
-        let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
-        this.activeEvents = events || [];
+    async loadOperationsNavigationList() {
+        // Pulls both active and closed relevant structural operations sequentially
+        let { data: events, error } = await _supabase.from('events').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error(error);
+            return;
+        }
+        this.eventsList = events || [];
 
-        await Promise.all(this.activeEvents.map(async (ev) => {
-            let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', ev.event_id);
-            
-            this.eventParticipations[ev.event_id] = (parts || []).map(p => {
-                if (p.player_responses && typeof p.player_responses === 'string') {
-                    try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); }
-                }
-                return p;
-            });
-            
-            if (this.eventMatrixTabs[ev.event_id] === undefined) this.eventMatrixTabs[ev.event_id] = 1;
-            
-            if (this.eventFormStates[ev.event_id] === undefined) {
-                this.eventFormStates[ev.event_id] = { 
-                    targetPlayerId: parseInt(this.currentUser.player_id) 
-                };
-            }
-        }));
-
-        this.renderAllActiveEventBlocks();
-    }
-
-    renderAllActiveEventBlocks() {
-        const root = document.getElementById('active-events-root');
-        if(this.activeEvents.length === 0) {
-            root.innerHTML = `<div class="panel" style="text-align:center; color:var(--text-muted);">No operational command activities are currently active.</div>`;
+        const targetNav = document.getElementById('event-navigation-list');
+        if (this.eventsList.length === 0) {
+            targetNav.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:10px;">No operational directives configured.</div>`;
             return;
         }
 
-        const isAdmin = this.currentUser.access_level === 'admin';
-
-        root.innerHTML = this.activeEvents.map(ev => {
-            const state = this.eventFormStates[ev.event_id];
-            let adminProxyDrop = '';
-            if (isAdmin) {
-                const options = this.allPlayers.map(p => 
-                    `<option value="${p.player_id}" ${parseInt(state.targetPlayerId) === parseInt(p.player_id) ? 'selected' : ''}>Proxy: ${p.player_name}</option>`
-                ).join('');
-                adminProxyDrop = `<select style="width:auto; padding:3px; font-size:12px;" onchange="app.handleEventProxyChange('${ev.event_id}', this.value)"><option value="${this.currentUser.player_id}" ${parseInt(state.targetPlayerId) === parseInt(this.currentUser.player_id) ? 'selected' : ''}>Acting as: Myself</option>${options}</select>`;
-            }
-
+        targetNav.innerHTML = this.eventsList.map(ev => {
+            const statusBadge = ev.is_active ? `<span class="badge" style="background:#10b981;">Active</span>` : `<span class="badge" style="background:#64748b;">Closed</span>`;
             return `
-            <div class="event-container" id="block-${ev.event_id}">
-                <div class="event-container-title">
-                    <span>⚔️ OPERATION: ${ev.event_title}</span>
-                    <span class="badge badge-admin">${ev.event_type.replace('_', ' ').toUpperCase()}</span>
+            <div class="event-action-item">
+                <div>
+                    <strong style="font-size:14px; margin-right:8px;">${ev.event_title}</strong> 
+                    ${statusBadge}
+                    <span style="font-size:11px; margin-left:10px; color:var(--text-muted);">[Type: ${ev.event_type.replace('_', ' ')}]</span>
                 </div>
-
-                <div class="panel" style="background:#0f1317; margin-bottom:15px;">
-                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:bold; margin-bottom:5px;">Mission Directives</div>
-                    <div style="white-space:pre-wrap; font-size:13px; color:#cbd5e1;">${ev.strategy_text || 'No directives logged.'}</div>
-                </div>
-
-                <div class="panel" style="background:#1e293b; border-color:#475569;">
-                    <div class="panel-title">
-                        <span>Registration Submission Form</span>
-                        ${adminProxyDrop}
-                    </div>
-                    <form onsubmit="app.handleFormSubmit(event, '${ev.event_id}')">
-                        <div id="form-inner-${ev.event_id}"></div>
-                        <button type="submit" class="btn" style="margin-top:15px;">Lock Entry Selection</button>
-                    </form>
-                </div>
-
-                <div class="panel">
-                    <div class="panel-title">Live Deployment Matrix Room</div>
-                    <div id="tabs-row-${ev.event_id}" class="tabs hidden">
-                        <div class="tab" id="tab-${ev.event_id}-1" onclick="app.switchEventTab('${ev.event_id}', 1)">Day 1: Build</div>
-                        <div class="tab" id="tab-${ev.event_id}-2" onclick="app.switchEventTab('${ev.event_id}', 2)">Day 2: Research</div>
-                        <div class="tab" id="tab-${ev.event_id}-3" onclick="app.switchEventTab('${ev.event_id}', 3)">Day 3: Cooking</div>
-                    </div>
-                    <div id="summary-${ev.event_id}" class="summary-bar hidden"></div>
-                    <div class="table-wrapper">
-                        <table>
-                            <thead><tr id="th-${ev.event_id}"><th>Player Name</th></tr></thead>
-                            <tbody id="tb-${ev.event_id}"></tbody>
-                        </table>
-                    </div>
-                    <button id="bulk-save-btn-${ev.event_id}" class="btn hidden" style="margin-top:15px; background:#2e3b4e; border:1px solid var(--accent-orange);" onclick="app.saveBulkCombatAssignments('${ev.event_id}')">Lock R4 Matrix Assignments</button>
-                </div>
+                <button class="btn btn-secondary" onclick="app.loadFocusedEventWorkspace('${ev.event_id}')">View for ${ev.event_title}</button>
             </div>`;
         }).join('');
-
-        this.activeEvents.forEach(ev => {
-            this.buildInnerFormMarkup(ev.event_id, ev.event_type);
-            this.populateFormFieldsFromMemory(ev.event_id);
-            this.drawEventMatrixGrid(ev.event_id, ev.event_type);
-        });
     }
 
-    buildInnerFormMarkup(eventId, type) {
-        const target = document.getElementById(`form-inner-${eventId}`);
+    async loadFocusedEventWorkspace(eventId) {
+        const ev = this.eventsList.find(e => e.event_id === eventId);
+        if(!ev) return;
+
+        this.currentFocusedEvent = ev;
+        this.currentMatrixTab = 1;
+
+        // On-demand payload pull: queries exactly against composite fields event_id + player_id
+        let { data: participation, error } = await _supabase
+            .from('event_participations')
+            .select('*')
+            .eq('event_id', eventId)
+            .eq('player_id', parseInt(this.currentUser.player_id))
+            .maybeSingle();
+
+        if (error) {
+            console.error("Payload pull failed:", error);
+            alert("Error querying deployment profile data.");
+            return;
+        }
+
+        if (participation && participation.player_responses && typeof participation.player_responses === 'string') {
+            try { participation.player_responses = JSON.parse(participation.player_responses); } catch(e) { console.error(e); }
+        }
+        this.currentFocusedUserResponse = participation ? participation.player_responses : null;
+
+        const root = document.getElementById('focused-event-workspace-root');
+        const isAdmin = this.currentUser.access_level === 'admin';
+        
+        // Form controls are naturally disabled if the operation execution parameter is closed
+        const disableAttr = ev.is_active ? '' : 'disabled';
+        const submitBtnStyle = ev.is_active ? '' : 'style="display:none;"';
+
+        root.innerHTML = `
+        <div class="event-container" id="workspace-block-${ev.event_id}">
+            <div class="event-container-title">
+                <span>⚔️ CURRENT OPERATION: ${ev.event_title}</span>
+                <span class="badge badge-admin">${ev.event_type.replace('_', ' ').toUpperCase()}</span>
+            </div>
+
+            <div class="panel" style="background:#0f1317; margin-bottom:15px;">
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:bold; margin-bottom:5px;">Mission Directives</div>
+                <div style="white-space:pre-wrap; font-size:13px; color:#cbd5e1;">${ev.strategy_text || 'No directives logged.'}</div>
+            </div>
+
+            <div class="panel" style="background:#1e293b; border-color:#475569;">
+                <div class="panel-title">
+                    <span>Registration Submission Form</span>
+                </div>
+                <form onsubmit="app.handleFormSubmit(event)">
+                    <fieldset ${disableAttr} style="border:none; padding:0; margin:0;">
+                        <div id="form-inner-slots"></div>
+                        <button type="submit" class="btn" ${submitBtnStyle} style="margin-top:15px;">Save Changes</button>
+                    </fieldset>
+                </form>
+            </div>
+
+            <!-- Event Sign Up Overview: ONLY VISIBLE TO ADMIN USERS -->
+            <div class="panel ${isAdmin ? '' : 'hidden'}" style="border:1px solid var(--accent-orange);">
+                <div class="panel-title" style="color:var(--accent-orange);">📊 Event sign up overview</div>
+                <button class="btn" style="background:var(--accent-orange); margin-bottom:15px;" onclick="app.displayLatestOverviewUpdate()">Display the latest update</button>
+                
+                <div id="tabs-row-overview" class="tabs hidden">
+                    <div class="tab" id="tab-opt-1" onclick="app.switchOverviewTab(1)">Day 1: Build</div>
+                    <div class="tab" id="tab-opt-2" onclick="app.switchOverviewTab(2)">Day 2: Research</div>
+                    <div class="tab" id="tab-opt-3" onclick="app.switchOverviewTab(3)">Day 3: Cooking</div>
+                </div>
+                <div id="summary-overview" class="summary-bar hidden"></div>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr id="th-overview"><th>Player Name</th></tr></thead>
+                        <tbody id="tb-overview"></tbody>
+                    </table>
+                </div>
+                <button id="bulk-save-overview-btn" class="btn hidden" style="margin-top:15px; background:#2e3b4e; border:1px solid var(--accent-orange);" onclick="app.saveBulkCombatAssignments()">Lock R4 Matrix Assignments</button>
+            </div>
+        </div>`;
+
+        this.buildInnerFormMarkup(ev.event_type);
+        this.populateFormFieldsFromMemory(ev.event_type);
+        
+        // Auto Scroll viewport focus safely to workspace section smoothly
+        document.getElementById(`workspace-block-${ev.event_id}`).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    buildInnerFormMarkup(type) {
+        const target = document.getElementById('form-inner-slots');
         if(type === 'kvk_prep') {
             target.innerHTML = `
             <div style="margin-bottom:15px; border-left:3px solid #3b82f6; padding-left:10px;">
                 <label style="color:#3b82f6;">Request Chief Minister Title Day 1 (+10% Build)?</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d1-y-${eventId}" onclick="app.setFormToggleUi('${eventId}','d1',true)">YES</div>
-                    <div class="toggle-btn" id="t-d1-n-${eventId}" onclick="app.setFormToggleUi('${eventId}','d1',false)">NO</div>
+                    <div class="toggle-btn" id="t-d1-y" onclick="app.setFormToggleUi('d1',true)">YES</div>
+                    <div class="toggle-btn" id="t-d1-n" onclick="app.setFormToggleUi('d1',false)">NO</div>
                 </div>
-                <div id="fields-${eventId}-d1" class="hidden">
+                <div id="fields-d1" class="hidden">
                     <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
-                    <div class="checkbox-grid" id="grid-${eventId}-d1" style="margin-bottom:10px;"></div>
-                    <input type="number" id="input-${eventId}-d1-speeds" placeholder="Construction Speedups (Whole Days)" style="margin-bottom:5px;">
-                    <input type="number" id="input-${eventId}-d1-gold" placeholder="True Gold Value" style="margin-bottom:5px;">
-                    <input type="number" id="input-${eventId}-d1-tempered" placeholder="Tempered Gold Count">
+                    <div class="checkbox-grid" id="grid-d1" style="margin-bottom:10px;"></div>
+                    <input type="number" id="input-d1-speeds" placeholder="Construction Speedups (Whole Days)" style="margin-bottom:5px;">
+                    <input type="number" id="input-d1-gold" placeholder="True Gold Value" style="margin-bottom:5px;">
+                    <input type="number" id="input-d1-tempered" placeholder="Tempered Gold Count">
                 </div>
             </div>
             <div style="margin-bottom:15px; border-left:3px solid #a855f7; padding-left:10px;">
                 <label style="color:#a855f7;">Request Chief Minister Title Day 2 (+10% Tech)?</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d2-y-${eventId}" onclick="app.setFormToggleUi('${eventId}','d2',true)">YES</div>
-                    <div class="toggle-btn" id="t-d2-n-${eventId}" onclick="app.setFormToggleUi('${eventId}','d2',false)">NO</div>
+                    <div class="toggle-btn" id="t-d2-y" onclick="app.setFormToggleUi('d2',true)">YES</div>
+                    <div class="toggle-btn" id="t-d2-n" onclick="app.setFormToggleUi('d2',false)">NO</div>
                 </div>
-                <div id="fields-${eventId}-d2" class="hidden">
+                <div id="fields-d2" class="hidden">
                     <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
-                    <div class="checkbox-grid" id="grid-${eventId}-d2" style="margin-bottom:10px;"></div>
-                    <input type="number" id="input-${eventId}-d2-speeds" placeholder="Research Speedups (Whole Days)" style="margin-bottom:5px;">
-                    <input type="number" id="input-${eventId}-d2-dust" placeholder="True Gold Dust Quantity">
+                    <div class="checkbox-grid" id="grid-d2" style="margin-bottom:10px;"></div>
+                    <input type="number" id="input-d2-speeds" placeholder="Research Speedups (Whole Days)" style="margin-bottom:5px;">
+                    <input type="number" id="input-d2-dust" placeholder="True Gold Dust Quantity">
                 </div>
             </div>
             <div style="margin-bottom:15px; border-left:3px solid #10b981; padding-left:10px;">
                 <label style="color:#10b981;">Request Noble Advisor Title Day 3 (+50% Cook)?</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d3-y-${eventId}" onclick="app.setFormToggleUi('${eventId}','d3',true)">YES</div>
-                    <div class="toggle-btn" id="t-d3-n-${eventId}" onclick="app.setFormToggleUi('${eventId}','d3',false)">NO</div>
+                    <div class="toggle-btn" id="t-d3-y" onclick="app.setFormToggleUi('d3',true)">YES</div>
+                    <div class="toggle-btn" id="t-d3-n" onclick="app.setFormToggleUi('d3',false)">NO</div>
                 </div>
-                <div id="fields-${eventId}-d3" class="hidden">
+                <div id="fields-d3" class="hidden">
                     <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
-                    <div class="checkbox-grid" id="grid-${eventId}-d3" style="margin-bottom:10px;"></div>
-                    <input type="number" id="input-${eventId}-d3-speeds" placeholder="Training Speedups (Whole Days)">
+                    <div class="checkbox-grid" id="grid-d3" style="margin-bottom:10px;"></div>
+                    <input type="number" id="input-d3-speeds" placeholder="Training Speedups (Whole Days)">
                 </div>
             </div>`;
             
             ['d1','d2','d3'].forEach(day => {
-                const grid = document.getElementById(`grid-${eventId}-${day}`);
+                const grid = document.getElementById(`grid-${day}`);
                 if (grid) {
                     grid.innerHTML = TIME_SLOTS.map((slot, i) => `
                         <div class="checkbox-item">
-                            <input type="checkbox" id="chk-${eventId}-${day}-${i}" value="${slot}">
+                            <input type="checkbox" id="chk-${day}-${i}" value="${slot}">
                             <span>${slot}</span>
                         </div>`).join('');
                 }
             });
-            ['d1','d2','d3'].forEach(day => this.setFormToggleUi(eventId, day, false));
+            ['d1','d2','d3'].forEach(day => this.setFormToggleUi(day, false));
         } else {
             target.innerHTML = `
             <div class="form-group">
                 <label>Select Deployment Window Parameters:</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="bt-need-${eventId}" onclick="app.setCombatStatusUi('${eventId}','needed')">As long as needed</div>
-                    <div class="toggle-btn" id="bt-cant-${eventId}" onclick="app.setCombatStatusUi('${eventId}','cannot')">Cannot Plan</div>
+                    <div class="toggle-btn" id="bt-need" onclick="app.setCombatStatusUi('needed')">As long as needed</div>
+                    <div class="toggle-btn" id="bt-cant" onclick="app.setCombatStatusUi('cannot')">Cannot Plan</div>
                 </div>
             </div>
             <div class="form-group">
                 <label>Specific Time Restrictions / Custom Hours Text Description:</label>
-                <textarea id="input-${eventId}-custom-text" placeholder="Specify availability windows in UTC if restricted..."></textarea>
+                <textarea id="input-custom-text" placeholder="Specify availability windows in UTC if restricted..."></textarea>
             </div>`;
-            this.setCombatStatusUi(eventId, 'needed');
+            this.setCombatStatusUi('needed');
         }
     }
 
-    setFormToggleUi(eventId, day, val) {
-        const yesBtn = document.getElementById(`t-${day}-y-${eventId}`);
-        const noBtn = document.getElementById(`t-${day}-n-${eventId}`);
-        const fieldsDiv = document.getElementById(`fields-${eventId}-${day}`);
+    setFormToggleUi(day, val) {
+        const yesBtn = document.getElementById(`t-${day}-y`);
+        const noBtn = document.getElementById(`t-${day}-n`);
+        const fieldsDiv = document.getElementById(`fields-${day}`);
         
         if(yesBtn) { if(val) yesBtn.classList.add('active'); else yesBtn.classList.remove('active'); }
         if(noBtn) { if(!val) noBtn.classList.add('active'); else noBtn.classList.remove('active'); }
         if(fieldsDiv) fieldsDiv.className = val ? '' : 'hidden';
     }
 
-    setCombatStatusUi(eventId, status) {
-        const needBtn = document.getElementById(`bt-need-${eventId}`);
-        const cantBtn = document.getElementById(`bt-cant-${eventId}`);
+    setCombatStatusUi(status) {
+        const needBtn = document.getElementById(`bt-need`);
+        const cantBtn = document.getElementById(`bt-cant`);
         if(needBtn) { if(status === 'needed') needBtn.classList.add('active'); else needBtn.classList.remove('active'); }
         if(cantBtn) { if(status === 'cannot') cantBtn.classList.add('active'); else cantBtn.classList.remove('active'); }
     }
 
-    handleEventProxyChange(eventId, targetPid) {
-        this.eventFormStates[eventId].targetPlayerId = parseInt(targetPid);
-        this.populateFormFieldsFromMemory(eventId);
-    }
+    populateFormFieldsFromMemory(type) {
+        let res = this.currentFocusedUserResponse;
+        if(!res) return;
 
-    populateFormFieldsFromMemory(eventId) {
-        const ev = this.activeEvents.find(e => e.event_id === eventId);
-        if (!ev) return;
-        
-        let targetedPlayerId = this.currentUser.player_id;
-        if (this.eventFormStates[eventId] && this.eventFormStates[eventId].targetPlayerId) {
-            targetedPlayerId = this.eventFormStates[eventId].targetPlayerId;
-        }
-        targetedPlayerId = parseInt(targetedPlayerId);
-        
-        const matchRecord = (this.eventParticipations[eventId] || []).find(p => parseInt(p.player_id) === targetedPlayerId);
-
-        if(ev.event_type === 'kvk_prep') {
-            ['d1', 'd2', 'd3'].forEach(d => {
-                this.setFormToggleUi(eventId, d, false);
-                TIME_SLOTS.forEach((slot, i) => {
-                    const chk = document.getElementById(`chk-${eventId}-${d}-${i}`);
-                    if(chk) chk.checked = false;
-                });
-                
-                const fSpeeds = document.getElementById(`input-${eventId}-${d}-speeds`); if(fSpeeds) fSpeeds.value = '';
-                const fGold = document.getElementById(`input-${eventId}-${d}-gold`); if(fGold) fGold.value = '';
-                const fTemp = document.getElementById(`input-${eventId}-${d}-tempered`); if(fTemp) fTemp.value = '';
-                const fDust = document.getElementById(`input-${eventId}-${d}-dust`); if(fDust) fDust.value = '';
-            });
-        } else {
-            this.setCombatStatusUi(eventId, 'needed');
-            const ct = document.getElementById(`input-${eventId}-custom-text`);
-            if(ct) ct.value = '';
-        }
-
-        if(!matchRecord || !matchRecord.player_responses) return;
-        
-        let res = matchRecord.player_responses;
-
-        if(ev.event_type === 'kvk_prep') {
+        if(type === 'kvk_prep') {
             if(res.d1_opt_in) {
-                this.setFormToggleUi(eventId, 'd1', true);
-                if(document.getElementById(`input-${eventId}-d1-speeds`)) document.getElementById(`input-${eventId}-d1-speeds`).value = res.d1_speeds ?? '';
-                if(document.getElementById(`input-${eventId}-d1-gold`)) document.getElementById(`input-${eventId}-d1-gold`).value = res.d1_gold ?? '';
-                if(document.getElementById(`input-${eventId}-d1-tempered`)) document.getElementById(`input-${eventId}-d1-tempered`).value = res.d1_tempered ?? '';
+                this.setFormToggleUi('d1', true);
+                if(document.getElementById(`input-d1-speeds`)) document.getElementById(`input-d1-speeds`).value = res.d1_speeds ?? '';
+                if(document.getElementById(`input-d1-gold`)) document.getElementById(`input-d1-gold`).value = res.d1_gold ?? '';
+                if(document.getElementById(`input-d1-tempered`)) document.getElementById(`input-d1-tempered`).value = res.d1_tempered ?? '';
 
                 TIME_SLOTS.forEach((slot, i) => { 
-                    const chk = document.getElementById(`chk-${eventId}-d1-${i}`);
+                    const chk = document.getElementById(`chk-d1-${i}`);
                     if(chk) chk.checked = !!(res.d1_slots && res.d1_slots.includes(slot));
                 });
             }
-            
             if(res.d2_opt_in) {
-                this.setFormToggleUi(eventId, 'd2', true);
-                if(document.getElementById(`input-${eventId}-d2-speeds`)) document.getElementById(`input-${eventId}-d2-speeds`).value = res.d2_speeds ?? '';
-                if(document.getElementById(`input-${eventId}-d2-dust`)) document.getElementById(`input-${eventId}-d2-dust`).value = res.d2_dust ?? '';
+                this.setFormToggleUi('d2', true);
+                if(document.getElementById(`input-d2-speeds`)) document.getElementById(`input-d2-speeds`).value = res.d2_speeds ?? '';
+                if(document.getElementById(`input-d2-dust`)) document.getElementById(`input-d2-dust`).value = res.d2_dust ?? '';
 
                 TIME_SLOTS.forEach((slot, i) => { 
-                    const chk = document.getElementById(`chk-${eventId}-d2-${i}`);
+                    const chk = document.getElementById(`chk-d2-${i}`);
                     if(chk) chk.checked = !!(res.d2_slots && res.d2_slots.includes(slot));
                 });
             }
-
             if(res.d3_opt_in) {
-                this.setFormToggleUi(eventId, 'd3', true);
-                if(document.getElementById(`input-${eventId}-d3-speeds`)) document.getElementById(`input-${eventId}-d3-speeds`).value = res.d3_speeds ?? '';
+                this.setFormToggleUi('d3', true);
+                if(document.getElementById(`input-d3-speeds`)) document.getElementById(`input-d3-speeds`).value = res.d3_speeds ?? '';
 
                 TIME_SLOTS.forEach((slot, i) => { 
-                    const chk = document.getElementById(`chk-${eventId}-d3-${i}`);
+                    const chk = document.getElementById(`chk-d3-${i}`);
                     if(chk) chk.checked = !!(res.d3_slots && res.d3_slots.includes(slot));
                 });
             }
         } else {
-            this.setCombatStatusUi(eventId, res.combat_status || 'needed');
-            const targetCustomText = document.getElementById(`input-${eventId}-custom-text`);
-            if(targetCustomText) targetCustomText.value = res.custom_hours || '';
+            this.setCombatStatusUi(res.combat_status || 'needed');
+            const ct = document.getElementById(`input-custom-text`);
+            if(ct) ct.value = res.custom_hours || '';
         }
     }
 
-    switchEventTab(eventId, dayNum) {
-        this.eventMatrixTabs[eventId] = dayNum;
-        this.drawEventMatrixGrid(eventId, 'kvk_prep');
-    }
+    async handleFormSubmit(e) {
+        e.preventDefault();
+        if(!this.currentFocusedEvent) return;
 
-    drawEventMatrixGrid(eventId, type) {
-        const currentTab = this.eventMatrixTabs[eventId];
-        const dataRows = this.eventParticipations[eventId] || [];
-        const th = document.getElementById(`th-${eventId}`);
-        const tb = document.getElementById(`tb-${eventId}`);
-        const banner = document.getElementById('summary-' + eventId);
-        const tabRow = document.getElementById('tabs-row-' + eventId);
-        const isAdmin = this.currentUser.access_level === 'admin';
+        const eventId = this.currentFocusedEvent.event_id;
+        const type = this.currentFocusedEvent.event_type;
+        let responses = {};
 
         if(type === 'kvk_prep') {
+            const d1Active = document.getElementById(`t-d1-y`)?.classList.contains('active');
+            const d2Active = document.getElementById(`t-d2-y`)?.classList.contains('active');
+            const d3Active = document.getElementById(`t-d3-y`)?.classList.contains('active');
+
+            if(d1Active) {
+                responses.d1_opt_in = true;
+                responses.d1_speeds = parseInt(document.getElementById(`input-d1-speeds`).value) || 0;
+                responses.d1_gold = parseInt(document.getElementById(`input-d1-gold`).value) || 0;
+                responses.d1_tempered = parseInt(document.getElementById(`input-d1-tempered`).value) || 0;
+                responses.d1_slots = [];
+                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d1-${i}`)?.checked) responses.d1_slots.push(slot); });
+            }
+            if(d2Active) {
+                responses.d2_opt_in = true;
+                responses.d2_speeds = parseInt(document.getElementById(`input-d2-speeds`).value) || 0;
+                responses.d2_dust = parseInt(document.getElementById(`input-d2-dust`).value) || 0;
+                responses.d2_slots = [];
+                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d2-${i}`)?.checked) responses.d2_slots.push(slot); });
+            }
+            if(d3Active) {
+                responses.d3_opt_in = true;
+                responses.d3_speeds = parseInt(document.getElementById(`input-d3-speeds`).value) || 0;
+                responses.d3_slots = [];
+                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d3-${i}`)?.checked) responses.d3_slots.push(slot); });
+            }
+        } else {
+            const cantActive = document.getElementById(`bt-cant`)?.classList.contains('active');
+            responses.combat_status = cantActive ? 'cannot' : 'needed';
+            responses.custom_hours = document.getElementById(`input-custom-text`)?.value.trim() || '';
+        }
+
+        // 🛡️ Safe Verification Lookup bypassing missing "id" auto key via structural composite mapping fields
+        const { data: databaseCheck, error: fetchErr } = await _supabase
+            .from('event_participations')
+            .select('event_id, player_id')
+            .eq('event_id', eventId)
+            .eq('player_id', parseInt(this.currentUser.player_id))
+            .maybeSingle();
+
+        if (fetchErr) {
+            console.error("Fetch verification lookup error:", fetchErr);
+            return alert("Verification verification error: " + fetchErr.message);
+        }
+
+        let syncError = null;
+
+        if (databaseCheck) {
+            // Document matched securely, perform targeted update targeting composite values
+            const { error: updateError } = await _supabase
+                .from('event_participations')
+                .update({
+                    player_responses: responses,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('event_id', eventId)
+                .eq('player_id', parseInt(this.currentUser.player_id));
+            syncError = updateError;
+        } else {
+            // New record mapping registration entry required
+            const { error: insertError } = await _supabase
+                .from('event_participations')
+                .insert({
+                    event_id: eventId,
+                    player_id: parseInt(this.currentUser.player_id),
+                    player_responses: responses,
+                    updated_at: new Date().toISOString()
+                });
+            syncError = insertError;
+        }
+
+        if(syncError) {
+            console.error("Database Synchronization Failure:", syncError);
+            alert("Database Error: " + syncError.message);
+            return;
+        }
+
+        alert("Operation status modifications safely recorded!");
+        this.currentFocusedUserResponse = responses;
+    }
+
+    // --- ADMINISTRATIVE SIGN UP OVERVIEW SUITE CONTROLS ---
+
+    async displayLatestOverviewUpdate() {
+        if (!this.currentFocusedEvent) return;
+        const eventId = this.currentFocusedEvent.event_id;
+
+        let { data: parts, error } = await _supabase
+            .from('event_participations')
+            .select('*, players(*)')
+            .eq('event_id', eventId);
+
+        if(error) {
+            console.error(error);
+            return alert("Failed to fetch current matrix overview updates.");
+        }
+
+        this.currentEventOverviewData = (parts || []).map(p => {
+            if (p.player_responses && typeof p.player_responses === 'string') {
+                try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); }
+            }
+            return p;
+        });
+
+        this.drawOverviewGrid();
+    }
+
+    switchOverviewTab(dayNum) {
+        this.currentMatrixTab = dayNum;
+        this.drawOverviewGrid();
+    }
+
+    drawOverviewGrid() {
+        const type = this.currentFocusedEvent.event_type;
+        const th = document.getElementById('th-overview');
+        const tb = document.getElementById('tb-overview');
+        const banner = document.getElementById('summary-overview');
+        const tabRow = document.getElementById('tabs-row-overview');
+        
+        if (type === 'kvk_prep') {
             if(tabRow) tabRow.classList.remove('hidden');
             if(banner) banner.classList.remove('hidden');
-            
-            [1,2,3].forEach(d => {
-                const tabEl = document.getElementById(`tab-${eventId}-${d}`);
-                if(tabEl) tabEl.className = `tab ${d === currentTab ? 'active' : ''}`;
+
+            [1, 2, 3].forEach(d => {
+                const tabEl = document.getElementById(`tab-opt-${d}`);
+                if(tabEl) tabEl.className = `tab ${d === this.currentMatrixTab ? 'active' : ''}`;
             });
 
             let activeTitleRequests = 0, aggregateSpeeds = 0, resourceAgg = 0;
-            dataRows.forEach(p => {
+            this.currentEventOverviewData.forEach(p => {
                 let r = p.player_responses || {};
-                
-                if(currentTab === 1 && r.d1_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d1_speeds || 0); resourceAgg += (r.d1_gold || 0); }
-                if(currentTab === 2 && r.d2_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d2_speeds || 0); resourceAgg += (r.d2_dust || 0); }
-                if(currentTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); }
+                if(this.currentMatrixTab === 1 && r.d1_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d1_speeds || 0); resourceAgg += (r.d1_gold || 0); }
+                if(this.currentMatrixTab === 2 && r.d2_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d2_speeds || 0); resourceAgg += (r.d2_dust || 0); }
+                if(this.currentMatrixTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); }
             });
 
             if(banner) {
-                if(currentTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold: ${resourceAgg}`;
-                if(currentTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
-                if(currentTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
+                if(this.currentMatrixTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold: ${resourceAgg}`;
+                if(this.currentMatrixTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
+                if(this.currentMatrixTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
             }
 
             if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
             if(tb) {
-                tb.innerHTML = dataRows.map(p => {
+                tb.innerHTML = this.currentEventOverviewData.map(p => {
                     let r = p.player_responses || {};
                     const user = p.players || { player_name: 'Unknown User' };
                     const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
@@ -750,20 +863,23 @@ class AppConfig {
                     let valOpt = "❌ No";
                     let valSlots = "--";
                     let valRes = "--";
-                    if(currentTab === 1 && r.d1_opt_in) { valOpt = "✅ Yes"; valSlots = r.d1_slots?.join(', ') || ''; valRes = `🏗️ ${r.d1_speeds}d Speeds / ${r.d1_gold} Gold / ${r.d1_tempered} Temp`; }
-                    if(currentTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
-                    if(currentTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
+                    if(this.currentMatrixTab === 1 && r.d1_opt_in) { valOpt = "✅ Yes"; valSlots = r.d1_slots?.join(', ') || ''; valRes = `🏗️ ${r.d1_speeds}d Speeds / ${r.d1_gold} Gold / ${r.d1_tempered} Temp`; }
+                    if(this.currentMatrixTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
+                    if(this.currentMatrixTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
 
                     return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
                 }).join('');
             }
         } else {
-            const bulkBtn = document.getElementById(`bulk-save-btn-${eventId}`);
-            if(isAdmin && bulkBtn) bulkBtn.classList.remove('hidden');
+            if(tabRow) tabRow.classList.add('hidden');
+            if(banner) banner.classList.add('hidden');
+            
+            const bulkBtn = document.getElementById(`bulk-save-overview-btn`);
+            if(bulkBtn) bulkBtn.classList.remove('hidden');
             if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
             
             if(tb) {
-                tb.innerHTML = dataRows.map((p, idx) => {
+                tb.innerHTML = this.currentEventOverviewData.map((p, idx) => {
                     let r = p.player_responses || {};
                     const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' };
                     const user = p.players || { player_name: 'Unknown' };
@@ -772,123 +888,36 @@ class AppConfig {
                     let avStr = r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed';
                     if(r.custom_hours) avStr += ` <div style="color:var(--text-muted); font-style:italic; font-size:11px;">"${r.custom_hours}"</div>`;
 
-                    if(isAdmin) {
-                        return `
-                        <tr>
-                            <td><strong>${user.player_name}</strong></td>
-                            <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td>
-                            <td><span class="badge">${pStr}</span></td>
-                            <td>${avStr}</td>
-                            <td>
-                                <input type="text" id="assign-all-${eventId}-${idx}" value="${a.battle_alliance || ''}" placeholder="Alliance Tag" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
-                                <select id="assign-role-${eventId}-${idx}" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
-                                    <option value="Rally Lead" ${a.combat_role === 'Rally Lead' ? 'selected' : ''}>Rally Lead</option>
-                                    <option value="Joiner" ${a.combat_role === 'Joiner' ? 'selected' : ''}>Joiner</option>
-                                    <option value="Reserve" ${a.combat_role === 'Reserve' ? 'selected' : ''}>Reserve</option>
-                                </select>
-                                <input type="hidden" id="assign-pid-${eventId}-${idx}" value="${p.player_id}">
-                            </td>
-                        </tr>`;
-                    } else {
-                        return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
-                    }
+                    return `
+                    <tr>
+                        <td><strong>${user.player_name}</strong></td>
+                        <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td>
+                        <td><span class="badge">${pStr}</span></td>
+                        <td>${avStr}</td>
+                        <td>
+                            <input type="text" id="assign-all-${idx}" value="${a.battle_alliance || ''}" placeholder="Alliance Tag" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
+                            <select id="assign-role-${idx}" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
+                                <option value="Rally Lead" ${a.combat_role === 'Rally Lead' ? 'selected' : ''}>Rally Lead</option>
+                                <option value="Joiner" ${a.combat_role === 'Joiner' ? 'selected' : ''}>Joiner</option>
+                                <option value="Reserve" ${a.combat_role === 'Reserve' ? 'selected' : ''}>Reserve</option>
+                            </select>
+                            <input type="hidden" id="assign-pid-${idx}" value="${p.player_id}">
+                        </td>
+                    </tr>`;
                 }).join('');
             }
         }
     }
 
-    async handleFormSubmit(e, eventId) {
-        e.preventDefault();
-        const ev = this.activeEvents.find(e => e.event_id === eventId);
-        const state = this.eventFormStates[eventId];
-        
-        const targetedPlayerId = parseInt(state?.targetPlayerId || this.currentUser.player_id);
-        let responses = {};
-
-        if(ev.event_type === 'kvk_prep') {
-            const d1Active = document.getElementById(`t-d1-y-${eventId}`)?.classList.contains('active');
-            const d2Active = document.getElementById(`t-d2-y-${eventId}`)?.classList.contains('active');
-            const d3Active = document.getElementById(`t-d3-y-${eventId}`)?.classList.contains('active');
-
-            if(d1Active) {
-                responses.d1_opt_in = true;
-                responses.d1_speeds = parseInt(document.getElementById(`input-${eventId}-d1-speeds`).value) || 0;
-                responses.d1_gold = parseInt(document.getElementById(`input-${eventId}-d1-gold`).value) || 0;
-                responses.d1_tempered = parseInt(document.getElementById(`input-${eventId}-d1-tempered`).value) || 0;
-                responses.d1_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d1-${i}`)?.checked) responses.d1_slots.push(slot); });
-            }
-            if(d2Active) {
-                responses.d2_opt_in = true;
-                responses.d2_speeds = parseInt(document.getElementById(`input-${eventId}-d2-speeds`).value) || 0;
-                responses.d2_dust = parseInt(document.getElementById(`input-${eventId}-d2-dust`).value) || 0;
-                responses.d2_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d2-${i}`)?.checked) responses.d2_slots.push(slot); });
-            }
-            if(d3Active) {
-                responses.d3_opt_in = true;
-                responses.d3_speeds = parseInt(document.getElementById(`input-${eventId}-d3-speeds`).value) || 0;
-                responses.d3_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d3-${i}`)?.checked) responses.d3_slots.push(slot); });
-            }
-        } else {
-            const cantActive = document.getElementById(`bt-cant-${eventId}`)?.classList.contains('active');
-            responses.combat_status = cantActive ? 'cannot' : 'needed';
-            responses.custom_hours = document.getElementById(`input-${eventId}-custom-text`)?.value.trim() || '';
-        }
-
-        // 🛡️ Pre-lookup target rows manually to explicitly circumvent duplicate constraint failures
-        const { data: databaseCheck, error: fetchErr } = await _supabase
-            .from('event_participations')
-            .select('id')
-            .eq('event_id', eventId)
-            .eq('player_id', targetedPlayerId)
-            .maybeSingle();
-
-        if (fetchErr) {
-            console.error("Fetch lookup error:", fetchErr);
-            return alert("Verification lookup error: " + fetchErr.message);
-        }
-
-        let syncError = null;
-
-        if (databaseCheck && databaseCheck.id) {
-            const { error: updateError } = await _supabase
-                .from('event_participations')
-                .update({
-                    player_responses: responses,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', databaseCheck.id);
-            syncError = updateError;
-        } else {
-            const { error: insertError } = await _supabase
-                .from('event_participations')
-                .insert({
-                    event_id: eventId,
-                    player_id: targetedPlayerId,
-                    player_responses: responses,
-                    updated_at: new Date().toISOString()
-                });
-            syncError = insertError;
-        }
-
-        if(syncError) {
-            console.error("Database Error Diagnosis:", syncError);
-            alert("Database Transmission Sync Failure: " + syncError.message);
-            return;
-        }
-
-        alert("Operation changes successfully recorded and matched!");
-        await this.refreshGlobalDataMaps();
-    }
-
-    async saveBulkCombatAssignments(eventId) {
+    async saveBulkCombatAssignments() {
+        if(!this.currentFocusedEvent) return;
+        const eventId = this.currentFocusedEvent.event_id;
         let idx = 0;
-        while(document.getElementById(`assign-pid-${eventId}-${idx}`)) {
-            const pId = parseInt(document.getElementById(`assign-pid-${eventId}-${idx}`).value);
-            const bAll = document.getElementById(`assign-all-${eventId}-${idx}`).value.trim();
-            const cRole = document.getElementById(`assign-role-${eventId}-${idx}`).value;
+        
+        while(document.getElementById(`assign-pid-${idx}`)) {
+            const pId = parseInt(document.getElementById(`assign-pid-${idx}`).value);
+            const bAll = document.getElementById(`assign-all-${idx}`).value.trim();
+            const cRole = document.getElementById(`assign-role-${idx}`).value;
 
             await _supabase.from('event_participations').update({
                 r4_assignments: { battle_alliance: bAll, combat_role: cRole }
@@ -897,15 +926,14 @@ class AppConfig {
             idx++;
         }
         alert("Combat tactical assignments synchronized successfully!");
-        await this.refreshGlobalDataMaps();
+        await this.displayLatestOverviewUpdate();
     }
 
     handleAdminTemplatePopulate() {
         const type = document.getElementById('adm-type').value;
         const baseTemplates = {
             kvk_prep: "## 🏗️ KVK PREPARATION PHASE\n• Complete target resource declarations inside forms below.",
-            kvk_battle: "## ⚔️ KVK COMBAT OPERATIONS\n• Track real-time roster war alliances assignments mapped below.",
-            tyrant: "## 👑 TYRANT FIGHT MATCHUP\n• Focus target parameters based on strategic timers."
+            kvk_battle: "## ⚔️ KVK COMBAT OPERATIONS\n• Track real-time roster war alliances assignments mapped below."
         };
         document.getElementById('adm-strategy').value = baseTemplates[type];
     }
@@ -926,7 +954,7 @@ class AppConfig {
 
         alert("New Operation Launched Successfully!");
         document.getElementById('adm-title').value = '';
-        await this.refreshGlobalDataMaps();
+        await this.loadOperationsNavigationList();
     }
 }
 
