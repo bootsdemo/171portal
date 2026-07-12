@@ -319,7 +319,6 @@ class AppConfig {
             
             if (this.eventMatrixTabs[ev.event_id] === undefined) this.eventMatrixTabs[ev.event_id] = 1;
             
-            // Track targetPlayerId explicitly while resetting toggle switches to prevent memory drift
             if (this.eventFormStates[ev.event_id] === undefined) {
                 this.eventFormStates[ev.event_id] = { 
                     toggles: { d1: false, d2: false, d3: false }, 
@@ -327,7 +326,6 @@ class AppConfig {
                     targetPlayerId: this.currentUser.player_id 
                 };
             } else {
-                // Ensure toggles clear cleanly on reload loops so fresh data can populate accurately
                 this.eventFormStates[ev.event_id].toggles = { d1: false, d2: false, d3: false };
             }
         }
@@ -499,16 +497,14 @@ class AppConfig {
         const ev = this.activeEvents.find(e => e.event_id === eventId);
         const state = this.eventFormStates[eventId];
         
-        // Secure rigid type checking against database structures
         const matchRecord = this.eventParticipations[eventId].find(p => String(p.player_id) === String(state.targetPlayerId));
 
-        // 1. Reset everything to baseline clean state
+        // 1. Reset baseline state to zero out past renders
         if(ev.event_type === 'kvk_prep') {
             this.setFormToggle(eventId, 'd1', false); 
             this.setFormToggle(eventId, 'd2', false); 
             this.setFormToggle(eventId, 'd3', false);
             
-            // Explicitly force clear fields
             ['d1', 'd2', 'd3'].forEach(d => {
                 const sp = document.getElementById(`input-${eventId}-${d}-speeds`); if(sp) sp.value = '';
                 const gd = document.getElementById(`input-${eventId}-d1-gold`); if(gd) gd.value = '';
@@ -529,21 +525,24 @@ class AppConfig {
         }
 
         if(!matchRecord || !matchRecord.player_responses) return;
-        const res = matchRecord.player_responses;
+        
+        // SAFE JSON BRIDGE: Parse if Database yielded a JSONB raw text payload instead of an object
+        let res = matchRecord.player_responses;
+        if (typeof res === 'string') {
+            try { res = JSON.parse(res); } catch(e) { console.error("Malformed payload text parsing error", e); return; }
+        }
 
         if(ev.event_type === 'kvk_prep') {
-            // Day 1 Hydration Block
-            if(res.d1_opt_in) {
-                // FORCE THE DOM UNHIDE MANUALLY FIRST TO AVOID ELEMENT NULL ERRORS
+            // Day 1 Safe Populate
+            if(res.d1_opt_in || res.d1_gold || res.d1_speeds) {
                 this.eventFormStates[eventId].toggles.d1 = true;
                 const yesBtn = document.getElementById(`t-d1-y-${eventId}`);
                 const noBtn = document.getElementById(`t-d1-n-${eventId}`);
                 const fieldsDiv = document.getElementById(`fields-${eventId}-d1`);
                 if(yesBtn) yesBtn.className = "toggle-btn active";
                 if(noBtn) noBtn.className = "toggle-btn";
-                if(fieldsDiv) fieldsDiv.className = ""; // Reveal block instantly
+                if(fieldsDiv) fieldsDiv.className = ""; 
 
-                // Now populate fields safely
                 const targetSpeeds = document.getElementById(`input-${eventId}-d1-speeds`);
                 const targetGold = document.getElementById(`input-${eventId}-d1-gold`);
                 const targetTempered = document.getElementById(`input-${eventId}-d1-tempered`);
@@ -558,8 +557,8 @@ class AppConfig {
                 });
             }
             
-            // Day 2 Hydration Block
-            if(res.d2_opt_in) {
+            // Day 2 Safe Populate
+            if(res.d2_opt_in || res.d2_speeds || res.d2_dust) {
                 this.eventFormStates[eventId].toggles.d2 = true;
                 const yesBtn = document.getElementById(`t-d2-y-${eventId}`);
                 const noBtn = document.getElementById(`t-d2-n-${eventId}`);
@@ -580,8 +579,8 @@ class AppConfig {
                 });
             }
 
-            // Day 3 Hydration Block
-            if(res.d3_opt_in) {
+            // Day 3 Safe Populate
+            if(res.d3_opt_in || res.d3_speeds) {
                 this.eventFormStates[eventId].toggles.d3 = true;
                 const yesBtn = document.getElementById(`t-d3-y-${eventId}`);
                 const noBtn = document.getElementById(`t-d3-n-${eventId}`);
@@ -630,7 +629,9 @@ class AppConfig {
 
             let activeTitleRequests = 0, aggregateSpeeds = 0, resourceAgg = 0;
             dataRows.forEach(p => {
-                const r = p.player_responses || {};
+                let r = p.player_responses || {};
+                if (typeof r === 'string') { try { r = JSON.parse(r); } catch(e) { r = {}; } }
+                
                 if(currentTab === 1 && r.d1_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d1_speeds || 0); resourceAgg += (r.d1_gold || 0); }
                 if(currentTab === 2 && r.d2_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d2_speeds || 0); resourceAgg += (r.d2_dust || 0); }
                 if(currentTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); }
@@ -642,7 +643,9 @@ class AppConfig {
 
             th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
             tb.innerHTML = dataRows.map(p => {
-                const r = p.player_responses || {};
+                let r = p.player_responses || {};
+                if (typeof r === 'string') { try { r = JSON.parse(r); } catch(e) { r = {}; } }
+                
                 const user = p.players || { player_name: 'Unknown User' };
                 const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
                 
@@ -660,7 +663,9 @@ class AppConfig {
             th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
             
             tb.innerHTML = dataRows.map((p, idx) => {
-                const r = p.player_responses || {};
+                let r = p.player_responses || {};
+                if (typeof r === 'string') { try { r = JSON.parse(r); } catch(e) { r = {}; } }
+                
                 const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' };
                 const user = p.players || { player_name: 'Unknown' };
                 const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
@@ -725,12 +730,17 @@ class AppConfig {
             responses.custom_hours = document.getElementById(`input-${eventId}-custom-text`).value.trim();
         }
 
-        await _supabase.from('event_participations').upsert({
+        const { error } = await _supabase.from('event_participations').upsert({
             event_id: eventId,
             player_id: state.targetPlayerId,
             player_responses: responses,
             updated_at: new Date().toISOString()
         }, { onConflict: 'event_id,player_id' });
+
+        if(error) {
+            alert("Database Error: " + error.message);
+            return;
+        }
 
         alert("Operation selection updated successfully!");
         await this.refreshGlobalDataMaps();
