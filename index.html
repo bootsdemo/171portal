@@ -161,15 +161,11 @@
 </div>
 
 <script>
-// ====================================================================
-// CONFIGURATION MODULE: Link your database connection markers here
-// ====================================================================
 const SUPABASE_URL = "https://xuzoznicceskwulsmymq.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1em96bmljY2Vza3d1bHNteW1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDE0NzQsImV4cCI6MjA5OTQxNzQ3NH0.5YCJ2EzXNGK23Sml7rAOHzY9JX5PZnUrjihDUlZpr8c";
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Structured 30-minute matching matrix format array reference rules
 const TIME_SLOTS = ["23.45 utc - 00.15 utc (start of the day)"];
 for (let h = 0; h < 24; h++) {
     let sh = String(h).padStart(2, '0');
@@ -202,7 +198,7 @@ class AppConfig {
         const idInput = document.getElementById('login-id').value.trim();
         if(!idInput) return alert("Please supply your In-Game ID.");
 
-        let { data: player } = await _supabase.from('players').select('*').eq('player_id', idInput).single();
+        let { data: player } = await _supabase.from('players').select('*').eq('player_id', parseInt(idInput)).single();
         if (!player) return alert("Player ID not recognized in system configuration roster.");
 
         this.currentUser = player;
@@ -288,7 +284,7 @@ class AppConfig {
                 archer_tier: document.getElementById('profile-arch').value
             };
 
-            const { error } = await _supabase.from('players').update(updatedFields).eq('player_id', this.currentUser.player_id);
+            const { error } = await _supabase.from('players').update(updatedFields).eq('player_id', parseInt(this.currentUser.player_id));
             
             if (error) {
                 alert("Database transmission error sync aborted: " + error.message);
@@ -308,11 +304,6 @@ class AppConfig {
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
 
-        if (this.currentUser.access_level === 'admin') {
-            let { data: roster } = await _supabase.from('players').select('*');
-            this.allPlayers = roster || [];
-        }
-
         for (const ev of this.activeEvents) {
             let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', ev.event_id);
             this.eventParticipations[ev.event_id] = parts || [];
@@ -321,12 +312,9 @@ class AppConfig {
             
             if (this.eventFormStates[ev.event_id] === undefined) {
                 this.eventFormStates[ev.event_id] = { 
-                    toggles: { d1: false, d2: false, d3: false }, 
                     combatStatus: 'needed', 
-                    targetPlayerId: this.currentUser.player_id 
+                    targetPlayerId: parseInt(this.currentUser.player_id) 
                 };
-            } else {
-                this.eventFormStates[ev.event_id].toggles = { d1: false, d2: false, d3: false };
             }
         }
         this.renderAllActiveEventBlocks();
@@ -346,9 +334,9 @@ class AppConfig {
             let adminProxyDrop = '';
             if (isAdmin) {
                 const options = this.allPlayers.map(p => 
-                    `<option value="${p.player_id}" ${String(state.targetPlayerId) === String(p.player_id) ? 'selected' : ''}>Proxy: ${p.player_name}</option>`
+                    `<option value="${p.player_id}" ${parseInt(state.targetPlayerId) === parseInt(p.player_id) ? 'selected' : ''}>Proxy: ${p.player_name}</option>`
                 ).join('');
-                adminProxyDrop = `<select style="width:auto; padding:3px; font-size:12px;" onchange="app.handleEventProxyChange('${ev.event_id}', this.value)"><option value="${this.currentUser.player_id}" ${String(state.targetPlayerId) === String(this.currentUser.player_id) ? 'selected' : ''}>Acting as: Myself</option>${options}</select>`;
+                adminProxyDrop = `<select style="width:auto; padding:3px; font-size:12px;" onchange="app.handleEventProxyChange('${ev.event_id}', this.value)"><option value="${this.currentUser.player_id}" ${parseInt(state.targetPlayerId) === parseInt(this.currentUser.player_id) ? 'selected' : ''}>Acting as: Myself</option>${options}</select>`;
             }
 
             return `
@@ -407,8 +395,8 @@ class AppConfig {
             <div style="margin-bottom:15px; border-left:3px solid #3b82f6; padding-left:10px;">
                 <label style="color:#3b82f6;">Request Chief Minister Title Day 1 (+10% Build)?</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d1-y-${eventId}" onclick="app.setFormToggle('${eventId}','d1',true)">YES</div>
-                    <div class="toggle-btn" id="t-d1-n-${eventId}" onclick="app.setFormToggle('${eventId}','d1',false)">NO</div>
+                    <div class="toggle-btn" id="t-d1-y-${eventId}" onclick="app.setFormToggleUi('${eventId}','d1',true)">YES</div>
+                    <div class="toggle-btn" id="t-d1-n-${eventId}" onclick="app.setFormToggleUi('${eventId}','d1',false)">NO</div>
                 </div>
                 <div id="fields-${eventId}-d1" class="hidden">
                     <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
@@ -421,8 +409,8 @@ class AppConfig {
             <div style="margin-bottom:15px; border-left:3px solid #a855f7; padding-left:10px;">
                 <label style="color:#a855f7;">Request Chief Minister Title Day 2 (+10% Tech)?</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d2-y-${eventId}" onclick="app.setFormToggle('${eventId}','d2',true)">YES</div>
-                    <div class="toggle-btn" id="t-d2-n-${eventId}" onclick="app.setFormToggle('${eventId}','d2',false)">NO</div>
+                    <div class="toggle-btn" id="t-d2-y-${eventId}" onclick="app.setFormToggleUi('${eventId}','d2',true)">YES</div>
+                    <div class="toggle-btn" id="t-d2-n-${eventId}" onclick="app.setFormToggleUi('${eventId}','d2',false)">NO</div>
                 </div>
                 <div id="fields-${eventId}-d2" class="hidden">
                     <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
@@ -434,8 +422,8 @@ class AppConfig {
             <div style="margin-bottom:15px; border-left:3px solid #10b981; padding-left:10px;">
                 <label style="color:#10b981;">Request Noble Advisor Title Day 3 (+50% Cook)?</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d3-y-${eventId}" onclick="app.setFormToggle('${eventId}','d3',true)">YES</div>
-                    <div class="toggle-btn" id="t-d3-n-${eventId}" onclick="app.setFormToggle('${eventId}','d3',false)">NO</div>
+                    <div class="toggle-btn" id="t-d3-y-${eventId}" onclick="app.setFormToggleUi('${eventId}','d3',true)">YES</div>
+                    <div class="toggle-btn" id="t-d3-n-${eventId}" onclick="app.setFormToggleUi('${eventId}','d3',false)">NO</div>
                 </div>
                 <div id="fields-${eventId}-d3" class="hidden">
                     <label style="font-size:12px; color:var(--text-muted); margin-bottom:5px;">Select Target Hours Window:</label>
@@ -452,44 +440,44 @@ class AppConfig {
                         <span>${slot}</span>
                     </div>`).join('');
             });
+            // Default to NO view
+            ['d1','d2','d3'].forEach(day => this.setFormToggleUi(eventId, day, false));
         } else {
             target.innerHTML = `
             <div class="form-group">
                 <label>Select Deployment Window Parameters:</label>
                 <div class="toggle-group">
-                    <div class="toggle-btn" id="bt-need-${eventId}" onclick="app.setCombatStatus('${eventId}','needed')">As long as needed</div>
-                    <div class="toggle-btn" id="bt-cant-${eventId}" onclick="app.setCombatStatus('${eventId}','cannot')">Cannot Plan</div>
+                    <div class="toggle-btn id="bt-need-${eventId}" onclick="app.setCombatStatusUi('${eventId}','needed')">As long as needed</div>
+                    <div class="toggle-btn" id="bt-cant-${eventId}" onclick="app.setCombatStatusUi('${eventId}','cannot')">Cannot Plan</div>
                 </div>
             </div>
             <div class="form-group">
                 <label>Specific Time Restrictions / Custom Hours Text Description:</label>
                 <textarea id="input-${eventId}-custom-text" placeholder="Specify availability windows in UTC if restricted..."></textarea>
             </div>`;
+            this.setCombatStatusUi(eventId, 'needed');
         }
     }
 
-    setFormToggle(eventId, day, val) {
-        this.eventFormStates[eventId].toggles[day] = val;
-        
+    setFormToggleUi(eventId, day, val) {
         const yesBtn = document.getElementById(`t-${day}-y-${eventId}`);
         const noBtn = document.getElementById(`t-${day}-n-${eventId}`);
         const fieldsDiv = document.getElementById(`fields-${eventId}-${day}`);
         
-        if(yesBtn) yesBtn.className = `toggle-btn ${val ? 'active' : ''}`;
-        if(noBtn) noBtn.className = `toggle-btn ${!val ? 'active' : ''}`;
+        if(yesBtn) { if(val) yesBtn.classList.add('active'); else yesBtn.classList.remove('active'); }
+        if(noBtn) { if(!val) noBtn.classList.add('active'); else noBtn.classList.remove('active'); }
         if(fieldsDiv) fieldsDiv.className = val ? '' : 'hidden';
     }
 
-    setCombatStatus(eventId, status) {
-        this.eventFormStates[eventId].combatStatus = status;
+    setCombatStatusUi(eventId, status) {
         const needBtn = document.getElementById(`bt-need-${eventId}`);
         const cantBtn = document.getElementById(`bt-cant-${eventId}`);
-        if(needBtn) needBtn.className = `toggle-btn ${status === 'needed' ? 'active' : ''}`;
-        if(cantBtn) cantBtn.className = `toggle-btn ${status === 'cannot' ? 'active' : ''}`;
+        if(needBtn) { if(status === 'needed') needBtn.classList.add('active'); else needBtn.classList.remove('active'); }
+        if(cantBtn) { if(status === 'cannot') cantBtn.classList.add('active'); else cantBtn.classList.remove('active'); }
     }
 
     handleEventProxyChange(eventId, targetPid) {
-        this.eventFormStates[eventId].targetPlayerId = targetPid;
+        this.eventFormStates[eventId].targetPlayerId = parseInt(targetPid);
         this.populateFormFieldsFromMemory(eventId);
     }
 
@@ -497,52 +485,26 @@ class AppConfig {
         const ev = this.activeEvents.find(e => e.event_id === eventId);
         const state = this.eventFormStates[eventId];
         
-        const matchRecord = this.eventParticipations[eventId].find(p => String(p.player_id) === String(state.targetPlayerId));
+        const matchRecord = this.eventParticipations[eventId].find(p => parseInt(p.player_id) === parseInt(state.targetPlayerId));
 
-        // 1. Reset baseline state to zero out past renders
         if(ev.event_type === 'kvk_prep') {
-            this.setFormToggle(eventId, 'd1', false); 
-            this.setFormToggle(eventId, 'd2', false); 
-            this.setFormToggle(eventId, 'd3', false);
-            
-            ['d1', 'd2', 'd3'].forEach(d => {
-                const sp = document.getElementById(`input-${eventId}-${d}-speeds`); if(sp) sp.value = '';
-                const gd = document.getElementById(`input-${eventId}-d1-gold`); if(gd) gd.value = '';
-                const tm = document.getElementById(`input-${eventId}-d1-tempered`); if(tm) tm.value = '';
-                const ds = document.getElementById(`input-${eventId}-d2-dust`); if(ds) ds.value = '';
-            });
-
-            TIME_SLOTS.forEach((_, i) => {
-                ['d1','d2','d3'].forEach(d => {
-                    const el = document.getElementById(`chk-${eventId}-${d}-${i}`);
-                    if(el) el.checked = false;
-                });
-            });
+            ['d1', 'd2', 'd3'].forEach(d => this.setFormToggleUi(eventId, d, false));
         } else {
-            this.setCombatStatus(eventId, 'needed');
+            this.setCombatStatusUi(eventId, 'needed');
             const ct = document.getElementById(`input-${eventId}-custom-text`);
             if(ct) ct.value = '';
         }
 
         if(!matchRecord || !matchRecord.player_responses) return;
         
-        // SAFE JSON BRIDGE: Parse if Database yielded a JSONB raw text payload instead of an object
         let res = matchRecord.player_responses;
         if (typeof res === 'string') {
-            try { res = JSON.parse(res); } catch(e) { console.error("Malformed payload text parsing error", e); return; }
+            try { res = JSON.parse(res); } catch(e) { console.error("Parsing error", e); return; }
         }
 
         if(ev.event_type === 'kvk_prep') {
-            // Day 1 Safe Populate
-            if(res.d1_opt_in || res.d1_gold || res.d1_speeds) {
-                this.eventFormStates[eventId].toggles.d1 = true;
-                const yesBtn = document.getElementById(`t-d1-y-${eventId}`);
-                const noBtn = document.getElementById(`t-d1-n-${eventId}`);
-                const fieldsDiv = document.getElementById(`fields-${eventId}-d1`);
-                if(yesBtn) yesBtn.className = "toggle-btn active";
-                if(noBtn) noBtn.className = "toggle-btn";
-                if(fieldsDiv) fieldsDiv.className = ""; 
-
+            if(res.d1_opt_in) {
+                this.setFormToggleUi(eventId, 'd1', true);
                 const targetSpeeds = document.getElementById(`input-${eventId}-d1-speeds`);
                 const targetGold = document.getElementById(`input-${eventId}-d1-gold`);
                 const targetTempered = document.getElementById(`input-${eventId}-d1-tempered`);
@@ -557,16 +519,8 @@ class AppConfig {
                 });
             }
             
-            // Day 2 Safe Populate
-            if(res.d2_opt_in || res.d2_speeds || res.d2_dust) {
-                this.eventFormStates[eventId].toggles.d2 = true;
-                const yesBtn = document.getElementById(`t-d2-y-${eventId}`);
-                const noBtn = document.getElementById(`t-d2-n-${eventId}`);
-                const fieldsDiv = document.getElementById(`fields-${eventId}-d2`);
-                if(yesBtn) yesBtn.className = "toggle-btn active";
-                if(noBtn) noBtn.className = "toggle-btn";
-                if(fieldsDiv) fieldsDiv.className = "";
-
+            if(res.d2_opt_in) {
+                this.setFormToggleUi(eventId, 'd2', true);
                 const targetSpeeds = document.getElementById(`input-${eventId}-d2-speeds`);
                 const targetDust = document.getElementById(`input-${eventId}-d2-dust`);
 
@@ -579,16 +533,8 @@ class AppConfig {
                 });
             }
 
-            // Day 3 Safe Populate
-            if(res.d3_opt_in || res.d3_speeds) {
-                this.eventFormStates[eventId].toggles.d3 = true;
-                const yesBtn = document.getElementById(`t-d3-y-${eventId}`);
-                const noBtn = document.getElementById(`t-d3-n-${eventId}`);
-                const fieldsDiv = document.getElementById(`fields-${eventId}-d3`);
-                if(yesBtn) yesBtn.className = "toggle-btn active";
-                if(noBtn) noBtn.className = "toggle-btn";
-                if(fieldsDiv) fieldsDiv.className = "";
-
+            if(res.d3_opt_in) {
+                this.setFormToggleUi(eventId, 'd3', true);
                 const targetSpeeds = document.getElementById(`input-${eventId}-d3-speeds`);
                 if(targetSpeeds) targetSpeeds.value = res.d3_speeds ?? '';
 
@@ -598,7 +544,7 @@ class AppConfig {
                 });
             }
         } else {
-            this.setCombatStatus(eventId, res.combat_status || 'needed');
+            this.setCombatStatusUi(eventId, res.combat_status || 'needed');
             const targetCustomText = document.getElementById(`input-${eventId}-custom-text`);
             if(targetCustomText) targetCustomText.value = res.custom_hours || '';
         }
@@ -670,7 +616,7 @@ class AppConfig {
                 const user = p.players || { player_name: 'Unknown' };
                 const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
                 
-                let avStr = r.combat_status === 'needed' ? '✅ As long as needed' : '❌ Cannot Plan';
+                let avStr = r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed';
                 if(r.custom_hours) avStr += ` <div style="color:var(--text-muted); font-style:italic; font-size:11px;">"${r.custom_hours}"</div>`;
 
                 if(isAdmin) {
@@ -701,10 +647,17 @@ class AppConfig {
         e.preventDefault();
         const ev = this.activeEvents.find(e => e.event_id === eventId);
         const state = this.eventFormStates[eventId];
+        const targetedPlayerId = parseInt(state.targetPlayerId);
+        
         let responses = {};
 
         if(ev.event_type === 'kvk_prep') {
-            if(state.toggles.d1) {
+            // Direct DOM Class inspection ensures 100% processing accuracy
+            const d1Active = document.getElementById(`t-d1-y-${eventId}`).classList.contains('active');
+            const d2Active = document.getElementById(`t-d2-y-${eventId}`).classList.contains('active');
+            const d3Active = document.getElementById(`t-d3-y-${eventId}`).classList.contains('active');
+
+            if(d1Active) {
                 responses.d1_opt_in = true;
                 responses.d1_speeds = parseInt(document.getElementById(`input-${eventId}-d1-speeds`).value) || 0;
                 responses.d1_gold = parseInt(document.getElementById(`input-${eventId}-d1-gold`).value) || 0;
@@ -712,44 +665,54 @@ class AppConfig {
                 responses.d1_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d1-${i}`).checked) responses.d1_slots.push(slot); });
             }
-            if(state.toggles.d2) {
+            if(d2Active) {
                 responses.d2_opt_in = true;
                 responses.d2_speeds = parseInt(document.getElementById(`input-${eventId}-d2-speeds`).value) || 0;
                 responses.d2_dust = parseInt(document.getElementById(`input-${eventId}-d2-dust`).value) || 0;
                 responses.d2_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d2-${i}`).checked) responses.d2_slots.push(slot); });
             }
-            if(state.toggles.d3) {
+            if(d3Active) {
                 responses.d3_opt_in = true;
                 responses.d3_speeds = parseInt(document.getElementById(`input-${eventId}-d3-speeds`).value) || 0;
                 responses.d3_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d3-${i}`).checked) responses.d3_slots.push(slot); });
             }
         } else {
-            responses.combat_status = state.combatStatus;
+            const cantActive = document.getElementById(`bt-cant-${eventId}`)?.classList.contains('active');
+            responses.combat_status = cantActive ? 'cannot' : 'needed';
             responses.custom_hours = document.getElementById(`input-${eventId}-custom-text`).value.trim();
         }
 
-        const { error } = await _supabase.from('event_participations').upsert({
+        // Direct payload structural compilation
+        const finalPayload = {
             event_id: eventId,
-            player_id: state.targetPlayerId,
+            player_id: targetedPlayerId,
             player_responses: responses,
             updated_at: new Date().toISOString()
-        }, { onConflict: 'event_id,player_id' });
+        };
+
+        // Locate existing record to bypass schema composite unique constraint mutations
+        const existingRecord = this.eventParticipations[eventId].find(p => parseInt(p.player_id) === targetedPlayerId);
+        if (existingRecord && existingRecord.id) {
+            finalPayload.id = existingRecord.id; 
+        }
+
+        const { error } = await _supabase.from('event_participations').upsert(finalPayload);
 
         if(error) {
-            alert("Database Error: " + error.message);
+            alert("Database Transmission Sync Failure: " + error.message);
             return;
         }
 
-        alert("Operation selection updated successfully!");
+        alert("Operation changes successfully recorded and matched!");
         await this.refreshGlobalDataMaps();
     }
 
     async saveBulkCombatAssignments(eventId) {
         let idx = 0;
         while(document.getElementById(`assign-pid-${eventId}-${idx}`)) {
-            const pId = document.getElementById(`assign-pid-${eventId}-${idx}`).value;
+            const pId = parseInt(document.getElementById(`assign-pid-${eventId}-${idx}`).value);
             const bAll = document.getElementById(`assign-all-${eventId}-${idx}`).value.trim();
             const cRole = document.getElementById(`assign-role-${eventId}-${idx}`).value;
 
