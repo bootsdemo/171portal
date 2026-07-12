@@ -223,7 +223,6 @@ class AppConfig {
             this.handleAdminTemplatePopulate();
         }
 
-        // Hydrate data mapping arrays cleanly BEFORE executing rendering workflows
         await this.refreshGlobalDataMaps();
     }
 
@@ -314,7 +313,6 @@ class AppConfig {
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
 
-        // FIXED: Execute data fetch requests via Promise.all to map historical records synchronously before moving to render phase
         await Promise.all(this.activeEvents.map(async (ev) => {
             let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', ev.event_id);
             this.eventParticipations[ev.event_id] = parts || [];
@@ -493,11 +491,17 @@ class AppConfig {
 
     populateFormFieldsFromMemory(eventId) {
         const ev = this.activeEvents.find(e => e.event_id === eventId);
-        const state = this.eventFormStates[eventId];
         
-        const matchRecord = this.eventParticipations[eventId].find(p => parseInt(p.player_id) === parseInt(state.targetPlayerId));
+        // Force evaluation parameters safely against active runtime profiles
+        let targetedPlayerId = this.currentUser.player_id;
+        if (this.eventFormStates[eventId] && this.eventFormStates[eventId].targetPlayerId) {
+            targetedPlayerId = this.eventFormStates[eventId].targetPlayerId;
+        }
+        targetedPlayerId = parseInt(targetedPlayerId);
+        
+        const matchRecord = (this.eventParticipations[eventId] || []).find(p => parseInt(p.player_id) === targetedPlayerId);
 
-        // Reset UI clean before reading historical data metrics
+        // Standard clean canvas sweep
         if(ev.event_type === 'kvk_prep') {
             ['d1', 'd2', 'd3'].forEach(d => {
                 this.setFormToggleUi(eventId, d, false);
@@ -505,6 +509,11 @@ class AppConfig {
                     const chk = document.getElementById(`chk-${eventId}-${d}-${i}`);
                     if(chk) chk.checked = false;
                 });
+                
+                const fSpeeds = document.getElementById(`input-${eventId}-${d}-speeds`); if(fSpeeds) fSpeeds.value = '';
+                const fGold = document.getElementById(`input-${eventId}-${d}-gold`); if(fGold) fGold.value = '';
+                const fTemp = document.getElementById(`input-${eventId}-${d}-tempered`); if(fTemp) fTemp.value = '';
+                const fDust = document.getElementById(`input-${eventId}-${d}-dust`); if(fDust) fDust.value = '';
             });
         } else {
             this.setCombatStatusUi(eventId, 'needed');
@@ -522,13 +531,9 @@ class AppConfig {
         if(ev.event_type === 'kvk_prep') {
             if(res.d1_opt_in) {
                 this.setFormToggleUi(eventId, 'd1', true);
-                const targetSpeeds = document.getElementById(`input-${eventId}-d1-speeds`);
-                const targetGold = document.getElementById(`input-${eventId}-d1-gold`);
-                const targetTempered = document.getElementById(`input-${eventId}-d1-tempered`);
-
-                if(targetSpeeds) targetSpeeds.value = res.d1_speeds ?? '';
-                if(targetGold) targetGold.value = res.d1_gold ?? '';
-                if(targetTempered) targetTempered.value = res.d1_tempered ?? '';
+                if(document.getElementById(`input-${eventId}-d1-speeds`)) document.getElementById(`input-${eventId}-d1-speeds`).value = res.d1_speeds ?? '';
+                if(document.getElementById(`input-${eventId}-d1-gold`)) document.getElementById(`input-${eventId}-d1-gold`).value = res.d1_gold ?? '';
+                if(document.getElementById(`input-${eventId}-d1-tempered`)) document.getElementById(`input-${eventId}-d1-tempered`).value = res.d1_tempered ?? '';
 
                 TIME_SLOTS.forEach((slot, i) => { 
                     const chk = document.getElementById(`chk-${eventId}-d1-${i}`);
@@ -538,11 +543,8 @@ class AppConfig {
             
             if(res.d2_opt_in) {
                 this.setFormToggleUi(eventId, 'd2', true);
-                const targetSpeeds = document.getElementById(`input-${eventId}-d2-speeds`);
-                const targetDust = document.getElementById(`input-${eventId}-d2-dust`);
-
-                if(targetSpeeds) targetSpeeds.value = res.d2_speeds ?? '';
-                if(targetDust) targetDust.value = res.d2_dust ?? '';
+                if(document.getElementById(`input-${eventId}-d2-speeds`)) document.getElementById(`input-${eventId}-d2-speeds`).value = res.d2_speeds ?? '';
+                if(document.getElementById(`input-${eventId}-d2-dust`)) document.getElementById(`input-${eventId}-d2-dust`).value = res.d2_dust ?? '';
 
                 TIME_SLOTS.forEach((slot, i) => { 
                     const chk = document.getElementById(`chk-${eventId}-d2-${i}`);
@@ -552,8 +554,7 @@ class AppConfig {
 
             if(res.d3_opt_in) {
                 this.setFormToggleUi(eventId, 'd3', true);
-                const targetSpeeds = document.getElementById(`input-${eventId}-d3-speeds`);
-                if(targetSpeeds) targetSpeeds.value = res.d3_speeds ?? '';
+                if(document.getElementById(`input-${eventId}-d3-speeds`)) document.getElementById(`input-${eventId}-d3-speeds`).value = res.d3_speeds ?? '';
 
                 TIME_SLOTS.forEach((slot, i) => { 
                     const chk = document.getElementById(`chk-${eventId}-d3-${i}`);
@@ -664,14 +665,14 @@ class AppConfig {
         e.preventDefault();
         const ev = this.activeEvents.find(e => e.event_id === eventId);
         const state = this.eventFormStates[eventId];
-        const targetedPlayerId = parseInt(state.targetPlayerId);
         
+        const targetedPlayerId = parseInt(state?.targetPlayerId || this.currentUser.player_id);
         let responses = {};
 
         if(ev.event_type === 'kvk_prep') {
-            const d1Active = document.getElementById(`t-d1-y-${eventId}`).classList.contains('active');
-            const d2Active = document.getElementById(`t-d2-y-${eventId}`).classList.contains('active');
-            const d3Active = document.getElementById(`t-d3-y-${eventId}`).classList.contains('active');
+            const d1Active = document.getElementById(`t-d1-y-${eventId}`)?.classList.contains('active');
+            const d2Active = document.getElementById(`t-d2-y-${eventId}`)?.classList.contains('active');
+            const d3Active = document.getElementById(`t-d3-y-${eventId}`)?.classList.contains('active');
 
             if(d1Active) {
                 responses.d1_opt_in = true;
@@ -679,25 +680,25 @@ class AppConfig {
                 responses.d1_gold = parseInt(document.getElementById(`input-${eventId}-d1-gold`).value) || 0;
                 responses.d1_tempered = parseInt(document.getElementById(`input-${eventId}-d1-tempered`).value) || 0;
                 responses.d1_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d1-${i}`).checked) responses.d1_slots.push(slot); });
+                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d1-${i}`)?.checked) responses.d1_slots.push(slot); });
             }
             if(d2Active) {
                 responses.d2_opt_in = true;
                 responses.d2_speeds = parseInt(document.getElementById(`input-${eventId}-d2-speeds`).value) || 0;
                 responses.d2_dust = parseInt(document.getElementById(`input-${eventId}-d2-dust`).value) || 0;
                 responses.d2_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d2-${i}`).checked) responses.d2_slots.push(slot); });
+                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d2-${i}`)?.checked) responses.d2_slots.push(slot); });
             }
             if(d3Active) {
                 responses.d3_opt_in = true;
                 responses.d3_speeds = parseInt(document.getElementById(`input-${eventId}-d3-speeds`).value) || 0;
                 responses.d3_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d3-${i}`).checked) responses.d3_slots.push(slot); });
+                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-${eventId}-d3-${i}`)?.checked) responses.d3_slots.push(slot); });
             }
         } else {
             const cantActive = document.getElementById(`bt-cant-${eventId}`)?.classList.contains('active');
             responses.combat_status = cantActive ? 'cannot' : 'needed';
-            responses.custom_hours = document.getElementById(`input-${eventId}-custom-text`).value.trim();
+            responses.custom_hours = document.getElementById(`input-${eventId}-custom-text`)?.value.trim() || '';
         }
 
         const finalPayload = {
@@ -707,15 +708,18 @@ class AppConfig {
             updated_at: new Date().toISOString()
         };
 
-        // FIXED: Checked inside our accurately filled arrays to prevent duplications
-        const existingRecord = this.eventParticipations[eventId].find(p => parseInt(p.player_id) === targetedPlayerId);
+        const existingRecord = this.eventParticipations[eventId]?.find(p => parseInt(p.player_id) === targetedPlayerId);
         if (existingRecord && existingRecord.id) {
             finalPayload.id = existingRecord.id; 
         }
 
-        const { error } = await _supabase.from('event_participations').upsert(finalPayload);
+        // DEFINITIVE STABILIZATION RE-ROUTE VIA ONCONFLICT INDEXING FLAGS
+        const { error } = await _supabase
+            .from('event_participations')
+            .upsert(finalPayload, { onConflict: 'event_id,player_id' });
 
         if(error) {
+            console.error("Payload breakdown:", finalPayload);
             alert("Database Transmission Sync Failure: " + error.message);
             return;
         }
