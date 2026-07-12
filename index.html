@@ -519,7 +519,7 @@ class AppConfig {
                         <input type="number" id="input-d1-speeds">
                     </div>
                     <div class="form-group">
-                        <label for="input-d1-gold">True Gold Value:</label>
+                        <label for="input-d1-gold">True Gold Count:</label>
                         <input type="number" id="input-d1-gold">
                     </div>
                     <div class="form-group">
@@ -542,7 +542,7 @@ class AppConfig {
                         <input type="number" id="input-d2-speeds">
                     </div>
                     <div class="form-group">
-                        <label for="input-d2-dust">True Gold Dust Quantity:</label>
+                        <label for="input-d2-dust">True Gold Dust Count:</label>
                         <input type="number" id="input-d2-dust">
                     </div>
                 </div>
@@ -668,7 +668,7 @@ class AppConfig {
                 responses.d1_tempered = parseInt(document.getElementById('input-d1-tempered').value) || 0;
                 responses.d1_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d1-${i}`)?.checked) responses.d1_slots.push(slot); });
-                summaryLines.push(`- Day 1 (Build): Yes [Speedups: ${responses.d1_speeds}d, Gold: ${responses.d1_gold}, Slots Checked: ${responses.d1_slots.length}]`);
+                summaryLines.push(`- Day 1 (Build): Yes [Speedups: ${responses.d1_speeds}d, True Gold Count: ${responses.d1_gold}, Tempered Gold Count: ${responses.d1_tempered}, Slots Checked: ${responses.d1_slots.length}]`);
             } else {
                 summaryLines.push(`- Day 1 (Build): No`);
             }
@@ -678,7 +678,7 @@ class AppConfig {
                 responses.d2_dust = parseInt(document.getElementById('input-d2-dust').value) || 0;
                 responses.d2_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d2-${i}`)?.checked) responses.d2_slots.push(slot); });
-                summaryLines.push(`- Day 2 (Research): Yes [Speedups: ${responses.d2_speeds}d, Dust: ${responses.d2_dust}, Slots Checked: ${responses.d2_slots.length}]`);
+                summaryLines.push(`- Day 2 (Research): Yes [Speedups: ${responses.d2_speeds}d, True Gold Dust Count: ${responses.d2_dust}, Slots Checked: ${responses.d2_slots.length}]`);
             } else {
                 summaryLines.push(`- Day 2 (Research): No`);
             }
@@ -835,7 +835,7 @@ class AppConfig {
             });
 
             if(banner) {
-                if(this.currentMatrixTab === 1) banner.innerHTML = `Day 1 Summary: ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold: ${resourceAgg}`;
+                if(this.currentMatrixTab === 1) banner.innerHTML = `Day 1 Summary: ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold Count: ${resourceAgg}`;
                 if(this.currentMatrixTab === 2) banner.innerHTML = `Day 2 Summary: ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
                 if(this.currentMatrixTab === 3) banner.innerHTML = `Day 3 Summary: ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
             }
