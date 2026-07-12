@@ -319,13 +319,16 @@ class AppConfig {
             
             if (this.eventMatrixTabs[ev.event_id] === undefined) this.eventMatrixTabs[ev.event_id] = 1;
             
-            // CRITICAL FIX: Retain targetPlayerId value across cycles if it is already tracked
+            // CRITICAL FIX: Track targetPlayerId explicitly while resetting toggle switches to prevent memory drift
             if (this.eventFormStates[ev.event_id] === undefined) {
                 this.eventFormStates[ev.event_id] = { 
                     toggles: { d1: false, d2: false, d3: false }, 
                     combatStatus: 'needed', 
                     targetPlayerId: this.currentUser.player_id 
                 };
+            } else {
+                // Ensure toggles clear cleanly on reload loops so fresh data can populate accurately
+                this.eventFormStates[ev.event_id].toggles = { d1: false, d2: false, d3: false };
             }
         }
         this.renderAllActiveEventBlocks();
@@ -344,7 +347,6 @@ class AppConfig {
             const state = this.eventFormStates[ev.event_id];
             let adminProxyDrop = '';
             if (isAdmin) {
-                // CRITICAL FIX: Dynamically tag the accurate proxy target setting so it preserves selection inside text blocks
                 const options = this.allPlayers.map(p => 
                     `<option value="${p.player_id}" ${String(state.targetPlayerId) === String(p.player_id) ? 'selected' : ''}>Proxy: ${p.player_name}</option>`
                 ).join('');
@@ -470,15 +472,22 @@ class AppConfig {
 
     setFormToggle(eventId, day, val) {
         this.eventFormStates[eventId].toggles[day] = val;
-        document.getElementById(`t-${day}-y-${eventId}`).className = `toggle-btn ${val ? 'active' : ''}`;
-        document.getElementById(`t-${day}-n-${eventId}`).className = `toggle-btn ${!val ? 'active' : ''}`;
-        document.getElementById(`fields-${eventId}-${day}`).className = val ? '' : 'hidden';
+        
+        const yesBtn = document.getElementById(`t-${day}-y-${eventId}`);
+        const noBtn = document.getElementById(`t-${day}-n-${eventId}`);
+        const fieldsDiv = document.getElementById(`fields-${eventId}-${day}`);
+        
+        if(yesBtn) yesBtn.className = `toggle-btn ${val ? 'active' : ''}`;
+        if(noBtn) noBtn.className = `toggle-btn ${!val ? 'active' : ''}`;
+        if(fieldsDiv) fieldsDiv.className = val ? '' : 'hidden';
     }
 
     setCombatStatus(eventId, status) {
         this.eventFormStates[eventId].combatStatus = status;
-        document.getElementById(`bt-need-${eventId}`).className = `toggle-btn ${status === 'needed' ? 'active' : ''}`;
-        document.getElementById(`bt-cant-${eventId}`).className = `toggle-btn ${status === 'cannot' ? 'active' : ''}`;
+        const needBtn = document.getElementById(`bt-need-${eventId}`);
+        const cantBtn = document.getElementById(`bt-cant-${eventId}`);
+        if(needBtn) needBtn.className = `toggle-btn ${status === 'needed' ? 'active' : ''}`;
+        if(cantBtn) cantBtn.className = `toggle-btn ${status === 'cannot' ? 'active' : ''}`;
     }
 
     handleEventProxyChange(eventId, targetPid) {
@@ -490,11 +499,13 @@ class AppConfig {
         const ev = this.activeEvents.find(e => e.event_id === eventId);
         const state = this.eventFormStates[eventId];
         
-        // CRITICAL FIX: Ensure matching handles string/number casting properly
+        // CRITICAL FIX: Ensure rigid String parsing to protect logic match execution loops
         const matchRecord = this.eventParticipations[eventId].find(p => String(p.player_id) === String(state.targetPlayerId));
 
         if(ev.event_type === 'kvk_prep') {
-            this.setFormToggle(eventId, 'd1', false); this.setFormToggle(eventId, 'd2', false); this.setFormToggle(eventId, 'd3', false);
+            this.setFormToggle(eventId, 'd1', false); 
+            this.setFormToggle(eventId, 'd2', false); 
+            this.setFormToggle(eventId, 'd3', false);
             document.getElementById(`input-${eventId}-d1-speeds`).value = '';
             document.getElementById(`input-${eventId}-d1-gold`).value = '';
             document.getElementById(`input-${eventId}-d1-tempered`).value = '';
@@ -516,23 +527,33 @@ class AppConfig {
         const res = matchRecord.player_responses;
 
         if(ev.event_type === 'kvk_prep') {
+            // CRITICAL FIX: Force toggle state activation *prior* to setting element configurations to unhide the elements
             if(res.d1_opt_in) {
                 this.setFormToggle(eventId, 'd1', true);
-                document.getElementById(`input-${eventId}-d1-speeds`).value = res.d1_speeds || 0;
-                document.getElementById(`input-${eventId}-d1-gold`).value = res.d1_gold || 0;
-                document.getElementById(`input-${eventId}-d1-tempered`).value = res.d1_tempered || 0;
-                TIME_SLOTS.forEach((slot, i) => { if(res.d1_slots?.includes(slot)) document.getElementById(`chk-${eventId}-d1-${i}`).checked = true; });
+                document.getElementById(`input-${eventId}-d1-speeds`).value = res.d1_speeds ?? '';
+                document.getElementById(`input-${eventId}-d1-gold`).value = res.d1_gold ?? '';
+                document.getElementById(`input-${eventId}-d1-tempered`).value = res.d1_tempered ?? '';
+                TIME_SLOTS.forEach((slot, i) => { 
+                    const chk = document.getElementById(`chk-${eventId}-d1-${i}`);
+                    if(chk) chk.checked = res.d1_slots?.includes(slot) ? true : false;
+                });
             }
             if(res.d2_opt_in) {
                 this.setFormToggle(eventId, 'd2', true);
-                document.getElementById(`input-${eventId}-d2-speeds`).value = res.d2_speeds || 0;
-                document.getElementById(`input-${eventId}-d2-dust`).value = res.d2_dust || 0;
-                TIME_SLOTS.forEach((slot, i) => { if(res.d2_slots?.includes(slot)) document.getElementById(`chk-${eventId}-d2-${i}`).checked = true; });
+                document.getElementById(`input-${eventId}-d2-speeds`).value = res.d2_speeds ?? '';
+                document.getElementById(`input-${eventId}-d2-dust`).value = res.d2_dust ?? '';
+                TIME_SLOTS.forEach((slot, i) => { 
+                    const chk = document.getElementById(`chk-${eventId}-d2-${i}`);
+                    if(chk) chk.checked = res.d2_slots?.includes(slot) ? true : false;
+                });
             }
             if(res.d3_opt_in) {
                 this.setFormToggle(eventId, 'd3', true);
-                document.getElementById(`input-${eventId}-d3-speeds`).value = res.d3_speeds || 0;
-                TIME_SLOTS.forEach((slot, i) => { if(res.d3_slots?.includes(slot)) document.getElementById(`chk-${eventId}-d3-${i}`).checked = true; });
+                document.getElementById(`input-${eventId}-d3-speeds`).value = res.d3_speeds ?? '';
+                TIME_SLOTS.forEach((slot, i) => { 
+                    const chk = document.getElementById(`chk-${eventId}-d3-${i}`);
+                    if(chk) chk.checked = res.d3_slots?.includes(slot) ? true : false;
+                });
             }
         } else {
             this.setCombatStatus(eventId, res.combat_status || 'needed');
