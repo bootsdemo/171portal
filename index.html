@@ -165,8 +165,8 @@
 // ====================================================================
 // CONFIGURATION MODULE: Link your database connection markers here
 // ====================================================================
-const SUPABASE_URL = "https://xuzoznicceskwulsmymq.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1em96bmljY2Vza3d1bHNteW1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDE0NzQsImV4cCI6MjA5OTQxNzQ3NH0.5YCJ2EzXNGK23Sml7rAOHzY9JX5PZnUrjihDUlZpr8c";
+const SUPABASE_URL = "YOUR_SUPABASE_URL"; 
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -242,7 +242,7 @@ class AppConfig {
         
         if (!this.isEditingProfile) {
             document.getElementById('wrapper-player-name').innerHTML = `<strong id="display-player-name">${this.currentUser.player_name || '--'}</strong>`;
-            document.getElementById('wrapper-player-alliance').innerHTML = `<strong id="display-player-alliance">${this.currentUser.alliance_tag || 'Unassigned'}</strong>`;
+            document.getElementById('wrapper-player-alliance').innerHTML = `<strong id="display-player-alliance">${this.currentUser.current_alliance || 'Unassigned'}</strong>`;
             
             document.getElementById('profile-city').disabled = true;
             document.getElementById('profile-inf').disabled = true;
@@ -253,7 +253,7 @@ class AppConfig {
             document.getElementById('profile-action-btn').className = "btn btn-secondary";
         } else {
             document.getElementById('wrapper-player-name').innerHTML = `<input type="text" id="edit-player-name" value="${this.currentUser.player_name || ''}" style="padding:5px 8px; font-size:13px;">`;
-            document.getElementById('wrapper-player-alliance').innerHTML = `<input type="text" id="edit-player-alliance" value="${this.currentUser.alliance_tag || ''}" placeholder="e.g., Zen" style="padding:5px 8px; font-size:13px;">`;
+            document.getElementById('wrapper-player-alliance').innerHTML = `<input type="text" id="edit-player-alliance" value="${this.currentUser.current_alliance || ''}" placeholder="e.g., Zen" style="padding:5px 8px; font-size:13px;">`;
             
             document.getElementById('profile-city').disabled = false;
             document.getElementById('profile-inf').disabled = false;
@@ -285,7 +285,7 @@ class AppConfig {
 
             const updatedFields = {
                 player_name: targetName,
-                alliance_tag: targetAlliance,
+                current_alliance: targetAlliance,
                 city_level: document.getElementById('profile-city').value,
                 infantry_tier: document.getElementById('profile-inf').value,
                 cavalry_tier: document.getElementById('profile-cav').value,
@@ -546,8 +546,8 @@ class AppConfig {
         const dataRows = this.eventParticipations[eventId] || [];
         const th = document.getElementById(`th-${eventId}`);
         const tb = document.getElementById(`tb-${eventId}`);
-        const banner = document.getElementById(`summary-${eventId}`);
-        const tabRow = document.getElementById(`tabs-row-${eventId}`);
+        const banner = document.getElementById('summary-' + eventId);
+        const tabRow = document.getElementById('tabs-row-' + eventId);
         const isAdmin = this.currentUser.access_level === 'admin';
 
         if(type === 'kvk_prep') {
@@ -582,7 +582,7 @@ class AppConfig {
                 if(currentTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
                 if(currentTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
 
-                return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.alliance_tag || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
+                return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
             }).join('');
         } else {
             if(isAdmin) document.getElementById(`bulk-save-btn-${eventId}`).classList.remove('hidden');
@@ -601,7 +601,7 @@ class AppConfig {
                     return `
                     <tr>
                         <td><strong>${user.player_name}</strong></td>
-                        <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.alliance_tag || '--'}</span></td>
+                        <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td>
                         <td><span class="badge">${pStr}</span></td>
                         <td>${avStr}</td>
                         <td>
@@ -615,7 +615,7 @@ class AppConfig {
                         </td>
                     </tr>`;
                 } else {
-                    return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.alliance_tag || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
+                    return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
                 }
             }).join('');
         }
