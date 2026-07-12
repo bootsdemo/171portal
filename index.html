@@ -31,6 +31,7 @@
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
+            font-size: 13px;
         }
         .form-group input, .form-group select, .form-group textarea {
             width: 100%;
@@ -57,7 +58,7 @@
             background-color: #5a6268;
         }
         .hidden {
-            display: none;
+            display: none !important;
         }
         .profile-section, .event-section, .admin-section {
             margin-bottom: 30px;
@@ -79,6 +80,7 @@
             cursor: pointer;
             border: 1px solid #ccc;
             border-radius: 4px;
+            font-weight: bold;
         }
         .toggle-btn.active {
             background: #0056b3;
@@ -169,7 +171,7 @@
     <!-- Main App Content Shell Workspace -->
     <div id="app-workspace" class="hidden">
         
-        <!-- My profile Section (Reverted styles and dropdown values) -->
+        <!-- My profile Section -->
         <div class="profile-section" id="player-profile-card">
             <h2>My profile</h2>
             <div class="form-group">
@@ -208,28 +210,7 @@
             <button id="profile-action-btn" class="btn btn-secondary" style="margin-top: 10px;" onclick="app.toggleProfileEditMode()">Edit Profile</button>
         </div>
 
-        <!-- Admin Control Cockpit -->
-        <div class="admin-section hidden" id="admin-control-cockpit">
-            <h2>R4 Control Panel</h2>
-            <div class="form-group">
-                <label>Event Title</label>
-                <input type="text" id="adm-title">
-            </div>
-            <div class="form-group">
-                <label>Event Type</label>
-                <select id="adm-type" onchange="app.handleAdminTemplatePopulate()">
-                    <option value="kvk_prep">KVK Preparation</option>
-                    <option value="kvk_battle">KVK Battle</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Strategy Text</label>
-                <textarea id="adm-strategy"></textarea>
-            </div>
-            <button class="btn" onclick="app.launchNewOperation()">Create Event</button>
-        </div>
-
-        <!-- Event list Navigation -->
+        <!-- Event list Navigation Section (Positioned under My Profile) -->
         <div class="event-section" id="event-actions-panel">
             <h2>Event list</h2>
             <div id="event-navigation-list"></div>
@@ -237,6 +218,32 @@
 
         <!-- On-Demand Active Working Board Section -->
         <div id="focused-event-workspace-root"></div>
+
+        <!-- Admin Control Panel (Strictly separate and hidden from members completely) -->
+        <div class="admin-section hidden" id="admin-control-cockpit">
+            <h2>R4 Control Panel</h2>
+            <button class="btn" id="admin-init-create-btn" onclick="app.showAdminCreateForm()">Create Event</button>
+            
+            <div id="admin-create-form-wrapper" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc;">
+                <div class="form-group">
+                    <label>Event Title</label>
+                    <input type="text" id="adm-title">
+                </div>
+                <div class="form-group">
+                    <label>Event Type</label>
+                    <select id="adm-type" onchange="app.handleAdminTemplatePopulate()">
+                        <option value="kvk_prep">KVK Preparation</option>
+                        <option value="kvk_battle">KVK Battle</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Strategy Text</label>
+                    <textarea id="adm-strategy"></textarea>
+                </div>
+                <button class="btn" onclick="app.launchNewOperation()">Submit New Event</button>
+                <button class="btn btn-secondary" onclick="app.hideAdminCreateForm()">Cancel</button>
+            </div>
+        </div>
 
     </div>
 </div>
@@ -300,11 +307,14 @@ class AppConfig {
 
         this.renderProfileSectionValues();
 
+        // Admin Access Guard Check
         if (player.access_level === 'admin') {
             document.getElementById('admin-control-cockpit').classList.remove('hidden');
             let { data: roster } = await _supabase.from('players').select('*');
             this.allPlayers = roster || [];
             this.handleAdminTemplatePopulate();
+        } else {
+            document.getElementById('admin-control-cockpit').classList.add('hidden');
         }
 
         await this.loadOperationsNavigationList();
@@ -322,6 +332,7 @@ class AppConfig {
         document.getElementById('global-logout-btn').classList.add('hidden');
         document.getElementById('login-panel').classList.remove('hidden');
         document.getElementById('focused-event-workspace-root').innerHTML = '';
+        this.hideAdminCreateForm();
     }
 
     renderProfileSectionValues() {
@@ -399,14 +410,27 @@ class AppConfig {
 
         targetNav.innerHTML = this.eventsList.map(ev => {
             const statusLabel = ev.is_active ? `<span style="color:green; font-weight:bold;">[Active]</span>` : `<span style="color:#666;">[Closed]</span>`;
+            
+            // Check if this event is currently loaded in the workspace block to switch actions between view or close cleanly
+            const isOpened = this.currentFocusedEvent && this.currentFocusedEvent.event_id === ev.event_id;
+            const buttonText = isOpened ? `Close Form` : `View for ${ev.event_title}`;
+            const clickAction = isOpened ? `app.closeWorkspaceForm()` : `app.loadFocusedEventWorkspace('${ev.event_id}')`;
+
             return `
             <div class="event-action-item">
                 <div>
                     <strong>${ev.event_title}</strong> ${statusLabel}
                 </div>
-                <button class="btn btn-secondary" onclick="app.loadFocusedEventWorkspace('${ev.event_id}')">View for ${ev.event_title}</button>
+                <button class="btn btn-secondary" onclick="${clickAction}">${buttonText}</button>
             </div>`;
         }).join('');
+    }
+
+    closeWorkspaceForm() {
+        this.currentFocusedEvent = null;
+        this.currentFocusedUserResponse = null;
+        document.getElementById('focused-event-workspace-root').innerHTML = '';
+        this.loadOperationsNavigationList(); // refresh buttons state
     }
 
     async loadFocusedEventWorkspace(eventId) {
@@ -415,6 +439,9 @@ class AppConfig {
 
         this.currentFocusedEvent = ev;
         this.currentMatrixTab = 1;
+
+        // Force reload navigation action panel buttons to mirror form opened context state change toggles
+        await this.loadOperationsNavigationList();
 
         let { data: participation, error } = await _supabase
             .from('event_participations')
@@ -438,7 +465,7 @@ class AppConfig {
 
         root.innerHTML = `
         <div class="event-section" id="workspace-block-${ev.event_id}" style="background:#fff; margin-top:20px;">
-            <h2>Operation Command: ${ev.event_title}</h2>
+            <h2>Event form: ${ev.event_title}</h2>
             
             <div style="background:#f0f0f0; padding:10px; border-radius:4px; margin-bottom:15px; white-space:pre-wrap;">${ev.strategy_text || 'No strategic information.'}</div>
 
@@ -449,7 +476,7 @@ class AppConfig {
                 </fieldset>
             </form>
 
-            <!-- Event sign up overview: EXCLUSIVELY AVAILABLE TO ADMIN ROLE -->
+            <!-- Event sign up overview -->
             <div id="admin-overview-block" class="${isAdmin ? '' : 'hidden'}" style="margin-top:25px; padding-top:20px; border-top:2px solid #ccc;">
                 <h3>Event sign up overview</h3>
                 <button class="btn" onclick="app.displayLatestOverviewUpdate()">Display the latest update</button>
@@ -479,42 +506,60 @@ class AppConfig {
         if(type === 'kvk_prep') {
             target.innerHTML = `
             <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <label style="color:#0056b3;">Request Chief Minister Title Day 1 (+10% Build)?</label>
+                <label style="color:#0056b3; font-size:14px;">Request Chief Minister Title Day 1 (+10% Build)?</label>
                 <div class="toggle-group">
                     <div class="toggle-btn" id="t-d1-y" onclick="app.setFormToggleUi('d1',true)">YES</div>
                     <div class="toggle-btn" id="t-d1-n" onclick="app.setFormToggleUi('d1',false)">NO</div>
                 </div>
-                <div id="fields-d1" class="hidden">
+                <div id="fields-d1" class="hidden" style="margin-top:10px;">
                     <label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label>
                     <div class="checkbox-grid" id="grid-d1"></div>
-                    <div class="form-group"><input type="number" id="input-d1-speeds" placeholder="Construction Speedups (Whole Days)"></div>
-                    <div class="form-group"><input type="number" id="input-d1-gold" placeholder="True Gold Value"></div>
-                    <div class="form-group"><input type="number" id="input-d1-tempered" placeholder="Tempered Gold Count"></div>
+                    <div class="form-group">
+                        <label for="input-d1-speeds">Construction Speedups (Whole Days):</label>
+                        <input type="number" id="input-d1-speeds">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-d1-gold">True Gold Value:</label>
+                        <input type="number" id="input-d1-gold">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-d1-tempered">Tempered Gold Count:</label>
+                        <input type="number" id="input-d1-tempered">
+                    </div>
                 </div>
             </div>
             <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <label style="color:#0056b3;">Request Chief Minister Title Day 2 (+10% Tech)?</label>
+                <label style="color:#0056b3; font-size:14px;">Request Chief Minister Title Day 2 (+10% Tech)?</label>
                 <div class="toggle-group">
                     <div class="toggle-btn" id="t-d2-y" onclick="app.setFormToggleUi('d2',true)">YES</div>
                     <div class="toggle-btn" id="t-d2-n" onclick="app.setFormToggleUi('d2',false)">NO</div>
                 </div>
-                <div id="fields-d2" class="hidden">
+                <div id="fields-d2" class="hidden" style="margin-top:10px;">
                     <label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label>
                     <div class="checkbox-grid" id="grid-d2"></div>
-                    <div class="form-group"><input type="number" id="input-d2-speeds" placeholder="Research Speedups (Whole Days)"></div>
-                    <div class="form-group"><input type="number" id="input-d2-dust" placeholder="True Gold Dust Quantity"></div>
+                    <div class="form-group">
+                        <label for="input-d2-speeds">Research Speedups (Whole Days):</label>
+                        <input type="number" id="input-d2-speeds">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-d2-dust">True Gold Dust Quantity:</label>
+                        <input type="number" id="input-d2-dust">
+                    </div>
                 </div>
             </div>
             <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <label style="color:#0056b3;">Request Noble Advisor Title Day 3 (+50% Cook)?</label>
+                <label style="color:#0056b3; font-size:14px;">Request Noble Advisor Title Day 3 (+50% buff)?</label>
                 <div class="toggle-group">
                     <div class="toggle-btn" id="t-d3-y" onclick="app.setFormToggleUi('d3',true)">YES</div>
                     <div class="toggle-btn" id="t-d3-n" onclick="app.setFormToggleUi('d3',false)">NO</div>
                 </div>
-                <div id="fields-d3" class="hidden">
+                <div id="fields-d3" class="hidden" style="margin-top:10px;">
                     <label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label>
                     <div class="checkbox-grid" id="grid-d3"></div>
-                    <div class="form-group"><input type="number" id="input-d3-speeds" placeholder="Training Speedups (Whole Days)"></div>
+                    <div class="form-group">
+                        <label for="input-d3-speeds">Training Speedups (Whole Days):</label>
+                        <input type="number" id="input-d3-speeds">
+                    </div>
                 </div>
             </div>`;
             
@@ -539,8 +584,8 @@ class AppConfig {
                 </div>
             </div>
             <div class="form-group">
-                <label>Custom Hours / Availability Text:</label>
-                <textarea id="input-custom-text" placeholder="Detail operational hours here..."></textarea>
+                <label for="input-custom-text">Custom Hours / Availability Text:</label>
+                <textarea id="input-custom-text"></textarea>
             </div>`;
             this.setCombatStatusUi('needed');
         }
@@ -597,7 +642,7 @@ class AppConfig {
             }
         } else {
             this.setCombatStatusUi(res.combat_status || 'needed');
-            const ct = document.getElementById(`input-custom-text`);
+            const ct = document.getElementById('input-custom-text');
             if(ct) ct.value = res.custom_hours || '';
         }
     }
@@ -609,38 +654,49 @@ class AppConfig {
         const eventId = this.currentFocusedEvent.event_id;
         const type = this.currentFocusedEvent.event_type;
         let responses = {};
+        let summaryLines = [];
 
         if(type === 'kvk_prep') {
-            const d1Active = document.getElementById(`t-d1-y`)?.classList.contains('active');
-            const d2Active = document.getElementById(`t-d2-y`)?.classList.contains('active');
-            const d3Active = document.getElementById(`t-d3-y`)?.classList.contains('active');
+            const d1Active = document.getElementById('t-d1-y')?.classList.contains('active');
+            const d2Active = document.getElementById('t-d2-y')?.classList.contains('active');
+            const d3Active = document.getElementById('t-d3-y')?.classList.contains('active');
 
-            // 🌟 Enhancement: If Active/Yes, pull form elements into record fields; if No, do not append to database object block payload at all
             if(d1Active) {
                 responses.d1_opt_in = true;
-                responses.d1_speeds = parseInt(document.getElementById(`input-d1-speeds`).value) || 0;
-                responses.d1_gold = parseInt(document.getElementById(`input-d1-gold`).value) || 0;
-                responses.d1_tempered = parseInt(document.getElementById(`input-d1-tempered`).value) || 0;
+                responses.d1_speeds = parseInt(document.getElementById('input-d1-speeds').value) || 0;
+                responses.d1_gold = parseInt(document.getElementById('input-d1-gold').value) || 0;
+                responses.d1_tempered = parseInt(document.getElementById('input-d1-tempered').value) || 0;
                 responses.d1_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d1-${i}`)?.checked) responses.d1_slots.push(slot); });
+                summaryLines.push(`- Day 1 (Build): Yes [Speedups: ${responses.d1_speeds}d, Gold: ${responses.d1_gold}, Slots Checked: ${responses.d1_slots.length}]`);
+            } else {
+                summaryLines.push(`- Day 1 (Build): No`);
             }
             if(d2Active) {
                 responses.d2_opt_in = true;
-                responses.d2_speeds = parseInt(document.getElementById(`input-d2-speeds`).value) || 0;
-                responses.d2_dust = parseInt(document.getElementById(`input-d2-dust`).value) || 0;
+                responses.d2_speeds = parseInt(document.getElementById('input-d2-speeds').value) || 0;
+                responses.d2_dust = parseInt(document.getElementById('input-d2-dust').value) || 0;
                 responses.d2_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d2-${i}`)?.checked) responses.d2_slots.push(slot); });
+                summaryLines.push(`- Day 2 (Research): Yes [Speedups: ${responses.d2_speeds}d, Dust: ${responses.d2_dust}, Slots Checked: ${responses.d2_slots.length}]`);
+            } else {
+                summaryLines.push(`- Day 2 (Research): No`);
             }
             if(d3Active) {
                 responses.d3_opt_in = true;
-                responses.d3_speeds = parseInt(document.getElementById(`input-d3-speeds`).value) || 0;
+                responses.d3_speeds = parseInt(document.getElementById('input-d3-speeds').value) || 0;
                 responses.d3_slots = [];
                 TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d3-${i}`)?.checked) responses.d3_slots.push(slot); });
+                summaryLines.push(`- Day 3 (Cooking): Yes [Speedups: ${responses.d3_speeds}d, Slots Checked: ${responses.d3_slots.length}]`);
+            } else {
+                summaryLines.push(`- Day 3 (Cooking): No`);
             }
         } else {
-            const cantActive = document.getElementById(`bt-cant`)?.classList.contains('active');
+            const cantActive = document.getElementById('bt-cant')?.classList.contains('active');
             responses.combat_status = cantActive ? 'cannot' : 'needed';
-            responses.custom_hours = document.getElementById(`input-custom-text`)?.value.trim() || '';
+            responses.custom_hours = document.getElementById('input-custom-text')?.value.trim() || '';
+            summaryLines.push(`- Deployment Status: ${responses.combat_status === 'cannot' ? 'Cannot Plan' : 'As long as needed'}`);
+            if(responses.custom_hours) summaryLines.push(`- Notes: "${responses.custom_hours}"`);
         }
 
         const { data: databaseCheck, error: fetchErr } = await _supabase
@@ -678,8 +734,53 @@ class AppConfig {
 
         if(syncError) return alert("Database Sync Error: " + syncError.message);
 
-        alert("Operational choices successfully saved!");
-        this.currentFocusedUserResponse = responses;
+        // 🌟 Clear UX Alert + Close form on submit confirmation flow match
+        const alertMessage = `You selected:\n\n${summaryLines.join('\n')}\n\nAbove details are submitted successfully!`;
+        alert(alertMessage);
+        
+        this.closeWorkspaceForm();
+    }
+
+    // --- ADMIN VISIBILITY LAYER ACTIONS ---
+    
+    showAdminCreateForm() {
+        document.getElementById('admin-create-form-wrapper').classList.remove('hidden');
+        document.getElementById('admin-init-create-btn').classList.add('hidden');
+    }
+
+    hideAdminCreateForm() {
+        document.getElementById('admin-create-form-wrapper').classList.add('hidden');
+        document.getElementById('admin-init-create-btn').classList.remove('hidden');
+        document.getElementById('adm-title').value = '';
+        document.getElementById('adm-strategy').value = '';
+    }
+
+    handleAdminTemplatePopulate() {
+        const type = document.getElementById('adm-type').value;
+        const baseTemplates = {
+            kvk_prep: "KVK PREPARATION PHASE\n• Complete target declarations below.",
+            kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below."
+        };
+        document.getElementById('adm-strategy').value = baseTemplates[type];
+    }
+
+    async launchNewOperation() {
+        const title = document.getElementById('adm-title').value.trim();
+        const type = document.getElementById('adm-type').value;
+        const strategy = document.getElementById('adm-strategy').value;
+
+        if(!title) return alert("Event title required.");
+
+        await _supabase.from('events').insert({
+            event_title: title,
+            event_type: type,
+            strategy_text: strategy,
+            is_active: true
+        });
+
+        alert("New Event Created!");
+        this.hideAdminCreateForm();
+        await this.loadOperationsNavigationList();
     }
 
     async displayLatestOverviewUpdate() {
@@ -760,7 +861,7 @@ class AppConfig {
             if(tabRow) tabRow.classList.add('hidden');
             if(banner) banner.classList.add('hidden');
             
-            const bulkBtn = document.getElementById(`bulk-save-overview-btn`);
+            const bulkBtn = document.getElementById('bulk-save-overview-btn');
             if(bulkBtn) bulkBtn.classList.remove('hidden');
             if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
             
@@ -813,34 +914,6 @@ class AppConfig {
         }
         alert("R4 assignments saved!");
         await this.displayLatestOverviewUpdate();
-    }
-
-    handleAdminTemplatePopulate() {
-        const type = document.getElementById('adm-type').value;
-        const baseTemplates = {
-            kvk_prep: "KVK PREPARATION PHASE\n• Complete target declarations below.",
-            kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below."
-        };
-        document.getElementById('adm-strategy').value = baseTemplates[type];
-    }
-
-    async launchNewOperation() {
-        const title = document.getElementById('adm-title').value.trim();
-        const type = document.getElementById('adm-type').value;
-        const strategy = document.getElementById('adm-strategy').value;
-
-        if(!title) return alert("Event title required.");
-
-        await _supabase.from('events').insert({
-            event_title: title,
-            event_type: type,
-            strategy_text: strategy,
-            is_active: true
-        });
-
-        alert("New Event Created!");
-        document.getElementById('adm-title').value = '';
-        await this.loadOperationsNavigationList();
     }
 }
 
