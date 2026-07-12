@@ -49,7 +49,7 @@
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
         .tab { flex: 1; text-align: center; padding: 8px; background: #0f1317; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .tab.active { background: #2e3b4e; color: var(--accent-orange); border-color: var(--accent-orange); }
-        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 150px; overflow-y: auto; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); border-radius: 4px; }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 180px; overflow-y: auto; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); border-radius: 4px; }
         .checkbox-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
         .summary-bar { background: #232d37; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 12px; border-left: 4px solid var(--accent-orange); }
         .table-wrapper { overflow-x: auto; }
@@ -82,12 +82,11 @@
     <!-- MAIN APP WRAPPER (HIDDEN UNTIL LOGIN) -->
     <div id="app-workspace" class="hidden">
         
-        <!-- 1. YOUR PROFILE SECTION -->
+        <!-- 1. PROFILE SECTION -->
         <div class="panel" id="global-profile-panel">
             <div class="panel-title">🛡️ Your Profile</div>
             
             <div class="profile-card">
-                <!-- Read-Only / Structural Identity Data Layer -->
                 <div class="profile-meta-grid">
                     <div class="meta-display-item">
                         <span>Player ID (Fixed)</span>
@@ -107,7 +106,6 @@
                     </div>
                 </div>
 
-                <!-- Strategic Capabilities Metrics Configuration Block -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; margin-top: 15px;">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>City Level</label>
@@ -133,10 +131,10 @@
             </div>
         </div>
 
-        <!-- 2. ACTIVE OPERATIONS ARCHITECTURE DISPLAY ELEMENT -->
+        <!-- 2. ACTIVE OPERATIONS -->
         <div id="active-events-root"></div>
 
-        <!-- 3. ADMIN OPERATIONS MANAGEMENT AREA -->
+        <!-- 3. ADMIN OPERATIONS Deck -->
         <div class="panel hidden" id="admin-control-cockpit">
             <div class="panel-title">🛰️ R4/R5 Operations Control Deck</div>
             <div class="form-group">
@@ -170,15 +168,17 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const TIME_SLOTS = [];
+// Structured 30-minute matching matrix format array reference rules
+const TIME_SLOTS = ["23.45 utc - 00.15 utc (start of the day)"];
 for (let h = 0; h < 24; h++) {
     let sh = String(h).padStart(2, '0');
-    TIME_SLOTS.push(`${sh}:15 - ${sh}:45 UTC`);
-    let nh = String((h + 1) % 24).padStart(2, '0');
-    TIME_SLOTS.push(`${sh}:45 - ${nh}:15 UTC`);
+    TIME_SLOTS.push(`${sh}.15 utc - ${sh}.45 utc`);
+    if (h < 23) {
+        let nh = String(h + 1).padStart(2, '0');
+        TIME_SLOTS.push(`${sh}.45 utc - ${nh}.15 utc`);
+    }
 }
-TIME_SLOTS.unshift("23:45 - 00:15 UTC (Reset Open)");
-TIME_SLOTS.push("23:45 - 00:15 UTC (Reset Close)");
+TIME_SLOTS.push("23.45 utc - 00.15 utc (end of the day)");
 
 class AppConfig {
     constructor() {
@@ -209,7 +209,6 @@ class AppConfig {
         document.getElementById('global-logout-btn').classList.remove('hidden');
         document.getElementById('app-workspace').classList.remove('hidden');
 
-        // Draw initial profile layout values
         this.renderProfileSectionValues();
 
         if (player.access_level === 'admin') {
@@ -237,7 +236,6 @@ class AppConfig {
     renderProfileSectionValues() {
         if (!this.currentUser) return;
         
-        // Render Text elements
         document.getElementById('display-player-id').innerText = this.currentUser.player_id;
         
         if (!this.isEditingProfile) {
@@ -264,7 +262,6 @@ class AppConfig {
             document.getElementById('profile-action-btn').className = "btn";
         }
 
-        // Dropdown status maps
         document.getElementById('profile-city').value = this.currentUser.city_level || "TG5";
         document.getElementById('profile-inf').value = this.currentUser.infantry_tier || "TG10";
         document.getElementById('profile-cav').value = this.currentUser.cavalry_tier || "TG10";
@@ -273,11 +270,9 @@ class AppConfig {
 
     async toggleProfileEditMode() {
         if (!this.isEditingProfile) {
-            // Enter edit mode
             this.isEditingProfile = true;
             this.renderProfileSectionValues();
         } else {
-            // Save operations triggered
             const targetName = document.getElementById('edit-player-name').value.trim();
             const targetAlliance = document.getElementById('edit-player-alliance').value.trim();
             
@@ -292,7 +287,6 @@ class AppConfig {
                 archer_tier: document.getElementById('profile-arch').value
             };
 
-            // Sync alterations to remote server database
             const { error } = await _supabase.from('players').update(updatedFields).eq('player_id', this.currentUser.player_id);
             
             if (error) {
@@ -300,14 +294,10 @@ class AppConfig {
                 return;
             }
 
-            // Update client configuration state object memory definitions
             this.currentUser = { ...this.currentUser, ...updatedFields };
-            
-            // Return interface back to locked reading layout state rules
             this.isEditingProfile = false;
             this.renderProfileSectionValues();
             
-            // Re-render live display matrix rows everywhere to capture the adjustments
             await this.refreshGlobalDataMaps();
             alert("Your military profile has been updated and synchronized!");
         }
@@ -317,7 +307,6 @@ class AppConfig {
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
 
-        // Update tracking structures for all admins to mirror potential profile name revisions
         if (this.currentUser.access_level === 'admin') {
             let { data: roster } = await _supabase.from('players').select('*');
             this.allPlayers = roster || [];
