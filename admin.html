@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>171 Admin Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { background-color: #0056b3; color: #fff; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background-color: #004080; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .hidden { display: none !important; }
+        .profile-section, .admin-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+        .tab { padding: 8px 15px; background: #e0e0e0; cursor: pointer; border-radius: 4px 4px 0 0; }
+        .tab.active { background: #0056b3; color: white; }
+        .summary-bar { background: #eef6ff; padding: 10px; border-left: 4px solid #0056b3; margin-bottom: 10px; font-weight: bold; }
+        .event-action-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>171 Admin Portal</h1>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="index.html" style="font-size: 13px; color: #0056b3;">← Player View</a>
+            <button id="global-logout-btn" class="btn btn-secondary hidden" onclick="app.logout()">Log Out</button>
+        </div>
+    </header>
+
+    <!-- Login -->
+    <div id="login-panel" style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 4px;">
+        <h3>Admin Login</h3>
+        <div class="form-group">
+            <label for="login-id">Player ID:</label>
+            <input type="number" id="login-id" placeholder="Enter your Player ID">
+        </div>
+        <button class="btn" style="width: 100%;" onclick="app.login()">Login</button>
+    </div>
+
+    <!-- Admin Workspace -->
+    <div id="app-workspace" class="hidden">
+
+        <!-- Profile (shared) -->
+        <div class="profile-section" id="player-profile-card">
+            <h2>My profile</h2>
+            <div class="form-group">
+                <p><strong>Player ID:</strong> <span id="display-player-id">--</span></p>
+                <div id="wrapper-player-name"><strong>Player Name:</strong> <span id="display-player-name">--</span></div>
+                <div id="wrapper-player-alliance" style="margin-top: 5px;"><strong>Alliance:</strong> <span id="display-player-alliance">--</span></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div class="form-group"><label>City Level:</label><select id="profile-city" disabled><option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option><option value="TG8">TG8</option><option value="TG9">TG9</option><option value="TG10">TG10</option></select></div>
+                <div class="form-group"><label>Infantry Level:</label><select id="profile-inf" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
+                <div class="form-group"><label>Cavalry Level:</label><select id="profile-cav" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
+                <div class="form-group"><label>Archer Level:</label><select id="profile-arch" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
+            </div>
+            <button id="profile-action-btn" class="btn btn-secondary" style="margin-top: 10px;" onclick="app.toggleProfileEditMode()">Edit Profile</button>
+        </div>
+
+        <!-- Manage events -->
+        <div class="admin-section">
+            <h2>Manage events</h2>
+            <button class="btn" id="admin-init-create-btn" onclick="app.showAdminCreateForm()">Create events</button>
+            <div id="admin-create-form-wrapper" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc;">
+                <div class="form-group"><label>Event Title</label><input type="text" id="adm-title"></div>
+                <div class="form-group"><label>Event Type</label><select id="adm-type" onchange="app.handleAdminTemplatePopulate()"><option value="kvk_prep">KVK Preparation</option><option value="kvk_battle">KVK Battle</option></select></div>
+                <div class="form-group"><label>Strategy Text</label><textarea id="adm-strategy"></textarea></div>
+                <button class="btn" onclick="app.launchNewOperation()">Submit New Event</button>
+                <button class="btn btn-secondary" onclick="app.hideAdminCreateForm()">Cancel</button>
+            </div>
+            <div id="admin-event-list" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc;"></div>
+            <div id="admin-signup-display" style="margin-top: 20px;"></div>
+        </div>
+
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+// AdminConfig extends AppConfig with admin-only features.
+class AdminConfig extends AppConfig {
+    constructor() {
+        super();
+        this.currentEventOverviewData = [];
+        this.currentMatrixTab = 1;
+    }
+
+    // --- Hook overrides ---
+
+    async onLoginSuccess() {
+        // Guard: kick non-admins back to player page
+        if (this.currentUser.access_level !== 'admin') {
+            alert("Admin access required. Redirecting to player portal.");
+            window.location.href = 'index.html';
+            return;
+        }
+        this.handleAdminTemplatePopulate();
+    }
+
+    onLogoutCleanup() {
+        this.hideAdminCreateForm();
+        this.closeSignupDisplay();
+    }
+
+    async onEventsLoaded() {
+        this.renderAdminEventList();
+    }
+
+
+    // --- Admin: create event ---
+
+    showAdminCreateForm() {
+        document.getElementById('admin-create-form-wrapper').classList.remove('hidden');
+        document.getElementById('admin-init-create-btn').classList.add('hidden');
+    }
+
+    hideAdminCreateForm() {
+        const wrapper = document.getElementById('admin-create-form-wrapper');
+        if (!wrapper) return;
+        wrapper.classList.add('hidden');
+        document.getElementById('admin-init-create-btn').classList.remove('hidden');
+        document.getElementById('adm-title').value = '';
+        document.getElementById('adm-strategy').value = '';
+    }
+
+    handleAdminTemplatePopulate() {
+        const typeEl = document.getElementById('adm-type');
+        if (!typeEl) return;
+        const type = typeEl.value;
+        const baseTemplates = {
+            kvk_prep: "KVK PREPARATION PHASE\n• Complete target declarations below.",
+            kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below."
+        };
+        document.getElementById('adm-strategy').value = baseTemplates[type];
+    }
+
+    async launchNewOperation() {
+        const title = document.getElementById('adm-title').value.trim();
+        const type = document.getElementById('adm-type').value;
+        const strategy = document.getElementById('adm-strategy').value;
+        if (!title) return alert("Event title required.");
+        await _supabase.from('events').insert({ event_title: title, event_type: type, strategy_text: strategy, is_active: true });
+        alert("New Event Created!");
+        this.hideAdminCreateForm();
+        await this.loadEvents();
+    }
+
+
+    // --- Admin: event list ---
+
+    renderAdminEventList() {
+        const target = document.getElementById('admin-event-list');
+        if (!target) return;
+        if (this.eventsList.length === 0) {
+            target.innerHTML = '<p style="color:#666; text-align:center;">No events created yet.</p>';
+            return;
+        }
+        target.innerHTML = this.eventsList.map(ev => {
+            const statusLabel = ev.is_active
+                ? '<span style="color:green; font-weight:bold;">[Active]</span>'
+                : '<span style="color:#666;">[Closed]</span>';
+            const signupBtn = ev.is_active
+                ? '<button class="btn btn-secondary" onclick="app.viewLatestSignup(\'' + ev.event_id + '\')">View latest sign up</button>'
+                : '<span style="color:#999; font-size:12px;">Sign up view available when active</span>';
+            return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div>' + signupBtn + '</div></div>';
+        }).join('');
+    }
+
+
+    // --- Admin: view latest sign up table ---
+
+    async viewLatestSignup(eventId) {
+        const ev = this.eventsList.find(e => e.event_id === eventId);
+        if (!ev) return;
+
+        let parts;
+        try { parts = await this.fetchParticipationsWithPlayers(eventId); }
+        catch (error) { return alert("Failed to fetch sign up records: " + error.message); }
+
+        const display = document.getElementById('admin-signup-display');
+        if (parts.length === 0) {
+            display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="color:#666; text-align:center;">No players have submitted a form for this event yet.</p><button class="btn btn-secondary" onclick="app.closeSignupDisplay()">Close</button>';
+            display.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
+
+        const type = ev.event_type;
+        const rows = parts.map(p => {
+            const r = p.player_responses || {};
+            const user = p.players || { player_name: 'Unknown', player_id: p.player_id };
+            const pStr = (user.city_level || '--') + '/' + (user.infantry_tier || '--') + '/' + (user.cavalry_tier || '--') + '/' + (user.archer_tier || '--');
+            let details = '';
+            if (type === 'kvk_prep') {
+                const lines = [];
+                lines.push('Day 1 (Build): ' + (r.d1_opt_in ? '✅ Yes' : '❌ No'));
+                if (r.d1_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d1_speeds || 0) + 'd | Gold: ' + (r.d1_gold || 0) + ' | Tempered: ' + (r.d1_tempered || 0) + ' | Slots: ' + (r.d1_slots || []).length);
+                lines.push('Day 2 (Research): ' + (r.d2_opt_in ? '✅ Yes' : '❌ No'));
+                if (r.d2_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d2_speeds || 0) + 'd | Dust: ' + (r.d2_dust || 0) + ' | Slots: ' + (r.d2_slots || []).length);
+                lines.push('Day 3 (Cooking): ' + (r.d3_opt_in ? '✅ Yes' : '❌ No'));
+                if (r.d3_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d3_speeds || 0) + 'd | Slots: ' + (r.d3_slots || []).length);
+                details = lines.join('<br>');
+            } else {
+                const lines = [];
+                lines.push('Status: ' + (r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'));
+                if (r.custom_hours) lines.push('Notes: "' + r.custom_hours + '"');
+                details = lines.join('<br>');
+            }
+            const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
+            return '<tr><td><strong>' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
+        }).join('');
+
+        display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="font-size:13px; color:#666; margin-bottom:10px;">' + parts.length + ' player(s) have submitted a form.</p><table><thead><tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th><th>Submitted At</th></tr></thead><tbody>' + rows + '</tbody></table><button class="btn btn-secondary" style="margin-top:15px;" onclick="app.closeSignupDisplay()">Close</button>';
+        display.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    closeSignupDisplay() {
+        const display = document.getElementById('admin-signup-display');
+        if (display) display.innerHTML = '';
+    }
+}
+
+const app = new AdminConfig();
+window.onload = () => app.init();
+</script>
+</body>
+</html>
