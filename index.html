@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>171 Alliance Command Portal</title>
+    <!-- Load Supabase CDN Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-dark: #12161a;
+            --panel-bg: #1a2229;
+            --border-color: #2e3b4e;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-orange: #ff7b00;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); padding: 15px; font-size: 14px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 20px; padding: 15px; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; }
+        h1 { color: var(--accent-orange); font-size: 1.5rem; margin-bottom: 5px; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 15px; margin-bottom: 20px; }
+        .panel-title { font-size: 1.1rem; color: var(--accent-orange); margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); color: white; border-radius: 4px; font-size: 14px; }
+        textarea { height: 80px; resize: none; }
+        .btn { background: var(--accent-orange); color: white; border: none; padding: 12px 20px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; }
+        .btn:hover { opacity: 0.9; }
+        .toggle-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .toggle-btn { flex: 1; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); color: var(--text-muted); text-align: center; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .toggle-btn.active { background: var(--accent-orange); color: white; border-color: var(--accent-orange); }
+        .hidden { display: none !important; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab { flex: 1; text-align: center; padding: 8px; background: #0f1317; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .tab.active { background: #2e3b4e; color: var(--accent-orange); border-color: var(--accent-orange); }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 150px; overflow-y: auto; padding: 10px; background: #0f1317; border: 1px solid var(--border-color); border-radius: 4px; }
+        .checkbox-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .summary-bar { background: #232d37; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 12px; border-left: 4px solid var(--accent-orange); }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border-color); }
+        th { background: #0f1317; color: var(--text-muted); }
+        .badge { padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; background: #2e3b4e; }
+        .badge-admin { background: var(--accent-orange); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 id="event-header-title">171 ALLIANCE MATRIX</h1>
+        <p id="event-header-desc" style="color: var(--text-muted);">Loading active operation details...</p>
+    </header>
+
+    <!-- LOGIN PANEL -->
+    <div id="login-panel" class="panel">
+        <div class="panel-title">Verify Player Identity</div>
+        <div class="form-group">
+            <label for="login-id">Enter In-Game Player ID</label>
+            <input type="number" id="login-id" placeholder="e.g., 9482019">
+        </div>
+        <button class="btn" onclick="app.login()">Access Portal</button>
+    </div>
+
+    <!-- MAIN APP WRAPPER (HIDDEN UNTIL LOGIN) -->
+    <div id="app-workspace" class="hidden">
+        
+        <!-- STRATEGY BRIEF PANEL -->
+        <div class="panel">
+            <div class="panel-title">📌 Strategic Mission Orders</div>
+            <div id="strategy-display-box" style="white-space: pre-wrap; line-height: 1.5; color: #cbd5e1;"></div>
+        </div>
+
+        <!-- USER SIGNUP FORM PANEL -->
+        <div class="panel" id="signup-panel">
+            <div class="panel-title">
+                <span>📝 Submit Event Registration</span>
+                <select id="proxy-selector" style="width: auto; padding: 3px; font-size: 12px; display: none;" onchange="app.handleProxyChange()">
+                    <option value="">Acting as: Myself</option>
+                </select>
+            </div>
+            
+            <div id="ui-form-error" style="color: var(--accent-red); font-weight: bold; margin-bottom: 10px;" class="hidden"></div>
+
+            <form id="event-form" onsubmit="app.submitForm(event)">
+                <!-- KVK PREP FLOW FIELDS -->
+                <div id="form-kvk-prep" class="hidden">
+                    <!-- Day 1 Section -->
+                    <div style="margin-bottom: 20px; border-left: 2px solid #3b82f6; padding-left: 10px;">
+                        <h3 style="margin-bottom: 10px; color: #3b82f6;">Section Day 1: Construction</h3>
+                        <label>Do you want the Chief Minister for +10% Building for Day 1?</label>
+                        <div class="toggle-group">
+                            <div class="toggle-btn" id="d1-yes" onclick="app.setToggle('d1', true)">YES</div>
+                            <div class="toggle-btn" id="d1-no" onclick="app.setToggle('d1', false)">NO</div>
+                        </div>
+                        <div id="d1-fields" class="hidden">
+                            <div class="form-group">
+                                <label>Time Slots to Use Chief Minister Day 1 (Multiple Select):</label>
+                                <div class="checkbox-grid" id="d1-slots-grid"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Construction Speed-ups (Whole Days):</label>
+                                <input type="number" id="d1-speeds" min="0" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Number of True Gold:</label>
+                                <input type="number" id="d1-gold" min="0" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label>How many Tempered True Gold:</label>
+                                <input type="number" id="d1-tempered" min="0" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Day 2 Section -->
+                    <div style="margin-bottom: 20px; border-left: 2px solid #a855f7; padding-left: 10px;">
+                        <h3 style="margin-bottom: 10px; color: #a855f7;">Section Day 2: Research</h3>
+                        <label>Do you want the Chief Minister for +10% Research?</label>
+                        <div class="toggle-group">
+                            <div class="toggle-btn" id="d2-yes" onclick="app.setToggle('d2', true)">YES</div>
+                            <div class="toggle-btn" id="d2-no" onclick="app.setToggle('d2', false)">NO</div>
+                        </div>
+                        <div id="d2-fields" class="hidden">
+                            <div class="form-group">
+                                <label>Research Speed-ups in days (Whole Number):</label>
+                                <input type="number" id="d2-speeds" min="0" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Number of True Gold Dust:</label>
+                                <input type="number" id="d2-dust" min="0" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Time Slots to Use Title Day Two Research (Multiple Select):</label>
+                                <div class="checkbox-grid" id="d2-slots-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Day 3 Section -->
+                    <div style="margin-bottom: 20px; border-left: 2px solid #10b981; padding-left: 10px;">
+                        <h3 style="margin-bottom: 10px; color: #10b981;">Section Day 3: Training</h3>
+                        <label>Do you want the Noble Advisor for +50%?</label>
+                        <div class="toggle-group">
+                            <div class="toggle-btn" id="d3-yes" onclick="app.setToggle('d3', true)">YES</div>
+                            <div class="toggle-btn" id="d3-no" onclick="app.setToggle('d3', false)">NO</div>
+                        </div>
+                        <div id="d3-fields" class="hidden">
+                            <div class="form-group">
+                                <label>Training Speed-ups in days (Whole Number):</label>
+                                <input type="number" id="d3-speeds" min="0" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Time Slots to Use Title Day Three Training (Multiple Select):</label>
+                                <div class="checkbox-grid" id="d3-slots-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMBAT/BATTLE FLOW FIELDS -->
+                <div id="form-combat" class="hidden">
+                    <div class="form-group">
+                        <label>Select Your Playable Window:</label>
+                        <div class="toggle-group" style="flex-direction: column;">
+                            <div class="toggle-btn" id="combat-window-needed" onclick="app.setCombatStatus('needed')">As long as needed</div>
+                            <div class="toggle-btn" id="combat-window-cannot" onclick="app.setCombatStatus('cannot')">Cannot plan</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Play a few hours? Specify exact custom windows here:</label>
+                        <textarea id="combat-hours-text" placeholder="e.g., Only available 04:00 - 06:00 UTC due to shift schedule..."></textarea>
+                    </div>
+                </div>
+
+                <!-- MILITARY PROFILE SYNC BLOCK -->
+                <div style="background: #0f1317; padding: 15px; border-radius: 4px; margin-top: 20px; border: 1px dashed var(--border-color);">
+                    <h4 style="margin-bottom: 10px; color: var(--text-muted); text-transform: uppercase; font-size: 11px; tracking: 1px;">🛡️ Military Profile Check</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>City Level</label>
+                            <select id="profile-city"><option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option><option value="TG8">TG8</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Infantry Tier</label>
+                            <select id="profile-inf"><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cavalry Tier</label>
+                            <select id="profile-cav"><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Archer Tier</label>
+                            <select id="profile-arch"><option value="TG10">TG10</option><option value="TG11">TG11</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" style="margin-top: 15px;">Submit</button>
+            </form>
+        </div>
+
+        <!-- RESULTS MATRIX GRID PANEL -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>📊 Deployment Matrix Board</span>
+                <select id="archive-event-selector" style="width: auto; padding: 3px; font-size: 12px;" onchange="app.loadHistoricalData()">
+                    <option value="current">Current Event</option>
+                </select>
+            </div>
+
+            <!-- Dashboard Subtabs for Prep Tracking -->
+            <div id="prep-matrix-tabs" class="tabs hidden">
+                <div class="tab active" id="tab-m1" onclick="app.setMatrixTab(1)">Day 1: Build</div>
+                <div class="tab" id="tab-m2" onclick="app.setMatrixTab(2)">Day 2: Research</div>
+                <div class="tab" id="tab-m3" onclick="app.setMatrixTab(3)">Day 3: Training</div>
+            </div>
+
+            <!-- Dynamic Aggregations Banner -->
+            <div id="summary-banner" class="summary-bar hidden"></div>
+
+            <!-- Core Roster Grid Frame -->
+            <div class="table-wrapper">
+                <table id="matrix-table">
+                    <thead><tr id="matrix-headers"><th>Player</th><th>Details</th></tr></thead>
+                    <tbody id="matrix-body"></tbody>
+                </table>
+            </div>
+            
+            <button id="admin-save-bulk-btn" class="btn hidden" style="margin-top: 15px; background: #2e3b4e; border: 1px solid var(--accent-orange);" onclick="app.saveBulkAdminAssignments()">Save Assignments</button>
+        </div>
+
+        <!-- ADMIN LAUNCH COMMAND COCKPIT PANEL -->
+        <div class="panel hidden" id="admin-control-cockpit">
+            <div class="panel-title">🛰️ R4/R5 Command Panel</div>
+            <div class="form-group">
+                <label>Operation Codename / Title</label>
+                <input type="text" id="adm-title" placeholder="e.g., KvK Season 5 - July 2026">
+            </div>
+            <div class="form-group">
+                <label>Operation Classification / Type</label>
+                <select id="adm-type" onchange="app.handleAdminTemplatePopulate()">
+                    <option value="kvk_prep">KvK Prep Phase</option>
+                    <option value="kvk_battle">KvK Battle Phase</option>
+                    <option value="tyrant">Tyrant Battle Event</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tactical Mission Orders (Markdown Supported)</label>
+                <textarea id="adm-strategy" style="height: 120px;"></textarea>
+            </div>
+            <button class="btn" onclick="app.launchNewNewOperation()">Launch Operation</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ====================================================================
+// CONFIGURATION MODULE: Link your database connection markers here
+// ====================================================================
+const SUPABASE_URL = "https://xuzoznicceskwulsmymq.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1em96bmljY2Vza3d1bHNteW1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDE0NzQsImV4cCI6MjA5OTQxNzQ3NH0.5YCJ2EzXNGK23Sml7rAOHzY9JX5PZnUrjihDUlZpr8c";
+
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Master Array for tracking 30-minute intervals
+const TIME_SLOTS = [];
+for (let h = 0; h < 24; h++) {
+    let sh = String(h).padStart(2, '0');
+    TIME_SLOTS.push(`${sh}:15 - ${sh}:45 UTC`);
+    let nh = String((h + 1) % 24).padStart(2, '0');
+    TIME_SLOTS.push(`${sh}:45 - ${nh}:15 UTC`);
+}
+// Sort array cleanly to handle reset constraints
+TIME_SLOTS.unshift("23:45 - 00:15 UTC (Reset Open)");
+TIME_SLOTS.push("23:45 - 00:15 UTC (Reset Close)");
+
+class AppConfig {
+    constructor() {
+        this.currentUser = null;
+        this.activeEvent = null;
+        this.allEvents = [];
+        this.allPlayers = [];
+        this.allParticipations = [];
+        this.selectedEventId = null;
+        
+        // Form states
+        this.toggles = { d1: false, d2: false, d3: false };
+        this.combatStatus = "needed"; // Default window selection
+        this.currentMatrixTab = 1;
+    }
+
+    async init() {
+        this.generateTimeCheckboxes();
+        await this.loadActiveEventContext();
+    }
+
+    generateTimeCheckboxes() {
+        ['d1', 'd2', 'd3'].forEach(day => {
+            const container = document.getElementById(`${day}-slots-grid`);
+            container.innerHTML = TIME_SLOTS.map((slot, i) => `
+                <div class="checkbox-item">
+                    <input type="checkbox" id="${day}-slot-${i}" value="${slot}">
+                    <span title="${slot}">${slot.split(' ')[0]}</span>
+                </div>
+            `).join('');
+        });
+    }
+
+    async loadActiveEventContext() {
+        // Pull events context
+        let { data: events } = await _supabase.from('events').select('*').order('created_at', { ascending: false });
+        this.allEvents = events || [];
+        
+        this.activeEvent = this.allEvents.find(e => e.is_active === true) || this.allEvents[0];
+        
+        // Pop history selector
+        const selector = document.getElementById('archive-event-selector');
+        selector.innerHTML = this.allEvents.map(e => `<option value="${e.event_id}">${e.is_active ? '⭐ Current: ' : '🕒 Past: '}${e.event_title}</option>`).join('');
+        
+        if (this.activeEvent) {
+            this.selectedEventId = this.activeEvent.event_id;
+            selector.value = this.selectedEventId;
+            this.renderEventHeader();
+        }
+        await this.loadMatrixDisplayData();
+    }
+
+    renderEventHeader() {
+        const ev = this.allEvents.find(e => e.event_id === this.selectedEventId);
+        if (!ev) return;
+        document.getElementById('event-header-title').innerText = ev.event_title.toUpperCase();
+        document.getElementById('event-header-desc').innerText = `Classification Focus: ${ev.event_type.replace('_', ' ').toUpperCase()}`;
+        document.getElementById('strategy-display-box').innerText = ev.strategy_text || "No strategy orders issued yet.";
+    }
+
+    async login() {
+        const idInput = document.getElementById('login-id').value.trim();
+        if(!idInput) return alert("Please supply your In-Game ID.");
+
+        let { data: player } = await _supabase.from('players').select('*').eq('player_id', idInput).single();
+        
+        if (!player) {
+            return alert("Player ID not recognized in database configuration roster. Contact R4/R5.");
+        }
+
+        this.currentUser = player;
+        document.getElementById('login-panel').classList.add('hidden');
+        document.getElementById('app-workspace').classList.remove('hidden');
+
+        // Apply profile stats values
+        document.getElementById('profile-city').value = player.city_level || "TG5";
+        document.getElementById('profile-inf').value = player.infantry_tier || "TG10";
+        document.getElementById('profile-cav').value = player.cavalry_tier || "TG10";
+        document.getElementById('profile-arch').value = player.archer_tier || "TG10";
+
+        if (player.access_level === 'admin') {
+            document.getElementById('admin-control-cockpit').classList.remove('hidden');
+            document.getElementById('admin-save-bulk-btn').classList.remove('hidden');
+            this.setupAdminControls();
+        }
+        this.loadUserRegistrationState(player.player_id);
+    }
+
+    async setupAdminControls() {
+        let { data: players } = await _supabase.from('players').select('*');
+        this.allPlayers = players || [];
+        const proxySel = document.getElementById('proxy-selector');
+        proxySel.style.display = "inline-block";
+        proxySel.innerHTML = '<option value="">Acting as: Myself</option>' + this.allPlayers.map(p => `<option value="${p.player_id}">Proxy: ${p.player_name}</option>`).join('');
+        this.handleAdminTemplatePopulate();
+    }
+
+    handleAdminTemplatePopulate() {
+        const type = document.getElementById('adm-type').value;
+        const templates = {
+            kvk_prep: "## 🏗️ KVK PREPARATION PHASE\n• Day 1 Construction: Apply for Chief Minister title inputs below.\n• Day 2 Research: Maximize speedup logs.\n• Day 3 Training: Buff up deployments.",
+            kvk_battle: "## ⚔️ KVK ACTIVE COMBAT BATTLE\n• Deploy to primary War Alliances assigned on grid.\n• Fill Rallies instantly, match requested troop tiers.",
+            tyrant: "## 👑 TYRANT FIGHT\n• Assembly deployment target schedules locked below.\n• Track specific target timezone coordinates."
+        };
+        document.getElementById('adm-strategy').value = templates[type];
+    }
+
+    setToggle(day, value) {
+        this.toggles[day] = value;
+        document.getElementById(`${day}-yes`).className = `toggle-btn ${value ? 'active' : ''}`;
+        document.getElementById(`${day}-no`).className = `toggle-btn ${!value ? 'active' : ''}`;
+        document.getElementById(`${day}-fields`).className = value ? '' : 'hidden';
+    }
+
+    setCombatStatus(status) {
+        this.combatStatus = status;
+        document.getElementById('combat-window-needed').className = `toggle-btn ${status === 'needed' ? 'active' : ''}`;
+        document.getElementById('combat-window-cannot').className = `toggle-btn ${status === 'cannot' ? 'active' : ''}`;
+    }
+
+    getTargetPlayerId() {
+        const proxyVal = document.getElementById('proxy-selector').value;
+        return proxyVal ? proxyVal : this.currentUser.player_id;
+    }
+
+    loadUserRegistrationState(playerId) {
+        const ev = this.allEvents.find(e => e.event_id === this.selectedEventId);
+        if(!ev) return;
+
+        // Reset forms visibility layout
+        document.getElementById('form-kvk-prep').classList.add('hidden');
+        document.getElementById('form-combat').classList.add('hidden');
+        
+        if (ev.event_id !== this.activeEvent?.event_id) {
+            document.getElementById('signup-panel').classList.add('hidden'); // Lock historical revisions
+            return;
+        } else {
+            document.getElementById('signup-panel').classList.remove('hidden');
+        }
+
+        if(ev.event_type === 'kvk_prep') {
+            document.getElementById('form-kvk-prep').classList.remove('hidden');
+        } else {
+            document.getElementById('form-combat').classList.remove('hidden');
+        }
+
+        // Pull previous answers row
+        const record = this.allParticipations.find(p => p.player_id === playerId && p.event_id === this.selectedEventId);
+        this.resetFormInputs();
+
+        if (record && record.player_responses) {
+            const resp = record.player_responses;
+            if(ev.event_type === 'kvk_prep') {
+                this.setToggle('d1', !!resp.d1_opt_in);
+                if(resp.d1_opt_in) {
+                    document.getElementById('d1-speeds').value = resp.d1_speeds || '';
+                    document.getElementById('d1-gold').value = resp.d1_gold || '';
+                    document.getElementById('d1-tempered').value = resp.d1_tempered || '';
+                    this.checkSlots('d1', resp.d1_slots);
+                }
+                this.setToggle('d2', !!resp.d2_opt_in);
+                if(resp.d2_opt_in) {
+                    document.getElementById('d2-speeds').value = resp.d2_speeds || '';
+                    document.getElementById('d2-dust').value = resp.d2_dust || '';
+                    this.checkSlots('d2', resp.d2_slots);
+                }
+                this.setToggle('d3', !!resp.d3_opt_in);
+                if(resp.d3_opt_in) {
+                    document.getElementById('d3-speeds').value = resp.d3_speeds || '';
+                    this.checkSlots('d3', resp.d3_slots);
+                }
+            } else {
+                this.setCombatStatus(resp.combat_status || 'needed');
+                document.getElementById('combat-hours-text').value = resp.custom_hours || '';
+            }
+        }
+    }
+
+    resetFormInputs() {
+        this.setToggle('d1', false); this.setToggle('d2', false); this.setToggle('d3', false);
+        this.setCombatStatus('needed');
+        document.getElementById('combat-hours-text').value = '';
+        document.getElementById('event-form').reset();
+    }
+
+    checkSlots(day, slotsArr) {
+        if(!slotsArr) return;
+        TIME_SLOTS.forEach((slot, i) => {
+            if(slotsArr.includes(slot)) {
+                const el = document.getElementById(`${day}-slot-${i}`);
+                if(el) el.checked = true;
+            }
+        });
+    }
+
+    getCheckedSlots(day) {
+        const chosen = [];
+        TIME_SLOTS.forEach((slot, i) => {
+            const el = document.getElementById(`${day}-slot-${i}`);
+            if(el && el.checked) chosen.push(el.value);
+        });
+        return chosen;
+    }
+
+    handleProxyChange() {
+        this.loadUserRegistrationState(this.getTargetPlayerId());
+    }
+
+    async submitForm(e) {
+        e.preventDefault();
+        const errorDiv = document.getElementById('ui-form-error');
+        errorDiv.classList.add('hidden');
+
+        const ev = this.allEvents.find(e => e.event_id === this.selectedEventId);
+        const targetPlayerId = this.getTargetPlayerId();
+        let responses = {};
+
+        // Run UI validation engine rules
+        if (ev.event_type === 'kvk_prep') {
+            if(this.toggles.d1) {
+                responses.d1_opt_in = true;
+                responses.d1_slots = this.getCheckedSlots('d1');
+                responses.d1_speeds = parseInt(document.getElementById('d1-speeds').value) || 0;
+                responses.d1_gold = parseInt(document.getElementById('d1-gold').value) || 0;
+                responses.d1_tempered = parseInt(document.getElementById('d1-tempered').value) || 0;
+                if(responses.d1_slots.length === 0) return this.showError("UI Validation Exception: Select at least one slot for Day 1 CM Title request.");
+            }
+            if(this.toggles.d2) {
+                responses.d2_opt_in = true;
+                responses.d2_speeds = parseInt(document.getElementById('d2-speeds').value) || 0;
+                responses.d2_dust = parseInt(document.getElementById('d2-dust').value) || 0;
+                responses.d2_slots = this.getCheckedSlots('d2');
+                if(responses.d2_slots.length === 0) return this.showError("UI Validation Exception: Select at least one slot for Day 2 Research Title request.");
+            }
+            if(this.toggles.d3) {
+                responses.d3_opt_in = true;
+                responses.d3_speeds = parseInt(document.getElementById('d3-speeds').value) || 0;
+                responses.d3_slots = this.getCheckedSlots('d3');
+                if(responses.d3_slots.length === 0) return this.showError("UI Validation Exception: Select at least one slot for Day 3 Training Title request.");
+            }
+        } else {
+            responses.combat_status = this.combatStatus;
+            responses.custom_hours = document.getElementById('combat-hours-text').value.trim();
+        }
+
+        // Sync Profile Data down
+        await _supabase.from('players').update({
+            city_level: document.getElementById('profile-city').value,
+            infantry_tier: document.getElementById('profile-inf').value,
+            cavalry_tier: document.getElementById('profile-cav').value,
+            archer_tier: document.getElementById('profile-arch').value
+        }).eq('player_id', targetPlayerId);
+
+        // Save sign-up inputs using an UPSERT command to enforce the one-record constraint
+        await _supabase.from('event_participations').upsert({
+            event_id: this.selectedEventId,
+            player_id: targetPlayerId,
+            player_responses: responses,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'event_id,player_id' });
+
+        alert("Data successfully submitted!");
+        await this.loadMatrixDisplayData();
+    }
+
+    showError(txt) {
+        const errorDiv = document.getElementById('ui-form-error');
+        errorDiv.innerText = txt;
+        errorDiv.classList.remove('hidden');
+        errorDiv.scrollIntoView();
+    }
+
+    async loadMatrixDisplayData() {
+        let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', this.selectedEventId);
+        this.allParticipations = parts || [];
+        this.renderMatrixBoard();
+    }
+
+    loadHistoricalData() {
+        this.selectedEventId = document.getElementById('archive-event-selector').value;
+        this.renderEventHeader();
+        this.loadUserRegistrationState(this.getTargetPlayerId());
+        this.loadMatrixDisplayData();
+    }
+
+    setMatrixTab(dayNum) {
+        this.currentMatrixTab = dayNum;
+        document.querySelectorAll('.tab').forEach((t, i) => t.className = `tab ${i+1 === dayNum ? 'active' : ''}`);
+        this.renderMatrixBoard();
+    }
+
+    renderMatrixBoard() {
+        const ev = this.allEvents.find(e => e.event_id === this.selectedEventId);
+        const headers = document.getElementById('matrix-headers');
+        const body = document.getElementById('matrix-body');
+        const banner = document.getElementById('summary-banner');
+        const tabs = document.getElementById('prep-matrix-tabs');
+
+        tabs.classList.add('hidden');
+        banner.classList.add('hidden');
+
+        if (!ev) return;
+
+        const isAdmin = this.currentUser?.access_level === 'admin';
+
+        if (ev.event_type === 'kvk_prep') {
+            tabs.classList.remove('hidden');
+            banner.classList.remove('hidden');
+            
+            // Run metrics aggregations engine
+            let totalPlayers = 0, totalSpeeds = 0, totalGold = 0, totalDust = 0;
+            this.allParticipations.forEach(p => {
+                const r = p.player_responses || {};
+                if (this.currentMatrixTab === 1 && r.d1_opt_in) { totalPlayers++; totalSpeeds += (r.d1_speeds || 0); totalGold += (r.d1_gold || 0); }
+                if (this.currentMatrixTab === 2 && r.d2_opt_in) { totalPlayers++; totalSpeeds += (r.d2_speeds || 0); totalDust += (r.d2_dust || 0); }
+                if (this.currentMatrixTab === 3 && r.d3_opt_in) { totalPlayers++; totalSpeeds += (r.d3_speeds || 0); }
+            });
+
+            if(this.currentMatrixTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${totalPlayers} Requesting Titles | Total Speeds: ${totalSpeeds} Days | Total True Gold: ${totalGold}`;
+            if(this.currentMatrixTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${totalPlayers} Requesting Titles | Total Speeds: ${totalSpeeds} Days | Total Dust: ${totalDust}`;
+            if(this.currentMatrixTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${totalPlayers} Requesting Titles | Total Training Speeds: ${totalSpeeds} Days`;
+
+            headers.innerHTML = `<th>Player Name</th><th>Military Profile</th><th>Wants Title?</th><th>Requested Time Blocks</th><th>Resources Metric</th>`;
+            
+            body.innerHTML = this.allParticipations.map(p => {
+                const r = p.player_responses || {};
+                const player = p.players || { player_name: 'Unknown ID: ' + p.player_id };
+                const profileStr = `${player.city_level || '--'}/${player.infantry_tier || '--'}/${player.cavalry_tier || '--'}/${player.archer_tier || '--'}`;
+                
+                let optIn = "❌ No", slots = "--", resource = "--";
+                if (this.currentMatrixTab === 1) {
+                    if(r.d1_opt_in) { optIn = "✅ Yes"; slots = r.d1_slots?.join(', ') || ''; resource = `📦 ${r.d1_speeds}d Speeds / ${r.d1_gold} Gold / ${r.d1_tempered} Temp`; }
+                } else if (this.currentMatrixTab === 2) {
+                    if(r.d2_opt_in) { optIn = "✅ Yes"; slots = r.d2_slots?.join(', ') || ''; resource = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
+                } else {
+                    if(r.d3_opt_in) { optIn = "✅ Yes"; slots = r.d3_slots?.join(', ') || ''; resource = `⚔️ ${r.d3_speeds}d Training Speeds`; }
+                }
+
+                return `<tr><td><strong>${player.player_name}</strong></td><td><span class="badge">${profileStr}</span></td><td>${optIn}</td><td style="font-size:11px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${slots}</td><td>${resource}</td></tr>`;
+            }).join('');
+
+        } else {
+            // Battle / Tyrant layout interface view
+            headers.innerHTML = `<th>Player Name</th><th>Military Profile</th><th>Combat Availability Status</th><th>R4 Strategic Deployment Assignments</th>`;
+            body.innerHTML = this.allParticipations.map((p, index) => {
+                const r = p.player_responses || {};
+                const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' };
+                const player = p.players || { player_name: 'Unknown ID: ' + p.player_id };
+                const profileStr = `${player.city_level || '--'}/${player.infantry_tier || '--'}/${player.cavalry_tier || '--'}/${player.archer_tier || '--'}`;
+
+                let statusStr = r.combat_status === 'needed' ? '✅ As long as needed' : '❌ Cannot plan';
+                if(r.custom_hours) statusStr += ` <div style="color:var(--text-muted); font-style:italic;">"${r.custom_hours}"</div>`;
+
+                if (isAdmin && ev.event_id === this.activeEvent?.event_id) {
+                    // Inject editable inputs for admin view
+                    return `
+                    <tr>
+                        <td><strong>${player.player_name}</strong></td>
+                        <td><span class="badge">${profileStr}</span></td>
+                        <td>${statusStr}</td>
+                        <td>
+                            <input type="text" id="adm-assign-all-${index}" value="${a.battle_alliance || ''}" placeholder="Battle Tag" style="width:90px; display:inline-block; padding:4px; font-size:11px;">
+                            <select id="adm-assign-role-${index}" style="width:90px; display:inline-block; padding:4px; font-size:11px;">
+                                <option value="Rally Lead" ${a.combat_role === 'Rally Lead' ? 'selected' : ''}>Rally Lead</option>
+                                <option value="Joiner" ${a.combat_role === 'Joiner' ? 'selected' : ''}>Joiner</option>
+                                <option value="Reserve" ${a.combat_role === 'Reserve' ? 'selected' : ''}>Reserve</option>
+                            </select>
+                            <input type="hidden" id="adm-assign-pid-${index}" value="${p.player_id}">
+                        </td>
+                    </tr>`;
+                } else {
+                    // Static clean view for regular members
+                    return `
+                    <tr>
+                        <td><strong>${player.player_name}</strong></td>
+                        <td><span class="badge">${profileStr}</span></td>
+                        <td>${statusStr}</td>
+                        <td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td>
+                    </tr>`;
+                }
+            }).join('');
+        }
+    }
+
+    async saveBulkAdminAssignments() {
+        const ev = this.allEvents.find(e => e.event_id === this.selectedEventId);
+        if(ev.event_type === 'kvk_prep') return alert("Assignments tracking is optimized for active deployment combat maps.");
+        
+        let idx = 0;
+        while (document.getElementById(`adm-assign-pid-${idx}`)) {
+            const pId = document.getElementById(`adm-assign-pid-${idx}`).value;
+            const bAlliance = document.getElementById(`adm-assign-all-${idx}`).value.trim();
+            const cRole = document.getElementById(`adm-assign-role-${idx}`).value;
+
+            await _supabase.from('event_participations').update({
+                r4_assignments: { battle_alliance: bAlliance, combat_role: cRole }
+            }).eq('event_id', this.selectedEventId).eq('player_id', pId);
+
+            idx++;
+        }
+        alert("Roster strategic deployment matrix locked and updated successfully!");
+        await this.loadMatrixDisplayData();
+    }
+
+    async launchNewNewOperation() {
+        const title = document.getElementById('adm-title').value.trim();
+        const type = document.getElementById('adm-type').value;
+        const strategy = document.getElementById('adm-strategy').value;
+
+        if(!title) return alert("Operation title is required.");
+
+        // Archive previous events
+        await _supabase.from('events').update({ is_active: false }).eq('is_active', true);
+
+        // Spawn new configuration row
+        await _supabase.from('events').insert({
+            event_title: title,
+            event_type: type,
+            strategy_text: strategy,
+            is_active: true
+        });
+
+        alert("New Strategic Operation launched globally!");
+        location.reload();
+    }
+}
+
+const app = new AppConfig();
+window.onload = () => app.init();
+</script>
+</body>
+</html>
