@@ -4,161 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>171 event planning portal</title>
-    <!-- Supabase JS Client Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1, h2, h3 {
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .btn {
-            background-color: #0056b3;
-            color: #fff;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn:hover {
-            background-color: #004080;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .profile-section, .event-section, .admin-section {
-            margin-bottom: 30px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background: #fafafa;
-        }
-        .toggle-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .toggle-btn {
-            flex: 1;
-            padding: 10px;
-            background: #eee;
-            text-align: center;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .toggle-btn.active {
-            background: #0056b3;
-            color: #fff;
-            border-color: #004080;
-        }
-        .checkbox-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            background: #fff;
-            margin-bottom: 10px;
-        }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        .tab {
-            padding: 8px 15px;
-            background: #e0e0e0;
-            cursor: pointer;
-            border-radius: 4px 4px 0 0;
-        }
-        .tab.active {
-            background: #0056b3;
-            color: white;
-        }
-        .summary-bar {
-            background: #eef6ff;
-            padding: 10px;
-            border-left: 4px solid #0056b3;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .event-action-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: #fff;
-            border: 1px solid #eee;
-            margin-bottom: 8px;
-            border-radius: 4px;
-        }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { background-color: #0056b3; color: #fff; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background-color: #004080; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .hidden { display: none !important; }
+        .profile-section, .event-section, .admin-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
+        .toggle-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .toggle-btn { flex: 1; padding: 10px; background: #eee; text-align: center; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
+        .toggle-btn.active { background: #0056b3; color: #fff; border-color: #004080; }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #fff; margin-bottom: 10px; }
+        .checkbox-item { display: flex; align-items: center; gap: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+        .tab { padding: 8px 15px; background: #e0e0e0; cursor: pointer; border-radius: 4px 4px 0 0; }
+        .tab.active { background: #0056b3; color: white; }
+        .summary-bar { background: #eef6ff; padding: 10px; border-left: 4px solid #0056b3; margin-bottom: 10px; font-weight: bold; }
+        .event-action-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>171 event planning portal</h1>
         <button id="global-logout-btn" class="btn btn-secondary hidden" onclick="app.logout()">Log Out</button>
     </header>
-
-    <!-- Authentication Gateway -->
     <div id="login-panel" style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 4px;">
         <h3>Login</h3>
         <div class="form-group">
@@ -167,11 +47,7 @@
         </div>
         <button class="btn" style="width: 100%;" onclick="app.login()">Login</button>
     </div>
-
-    <!-- Main App Content Shell Workspace -->
     <div id="app-workspace" class="hidden">
-        
-        <!-- My profile Section -->
         <div class="profile-section" id="player-profile-card">
             <h2>My profile</h2>
             <div class="form-group">
@@ -179,135 +55,63 @@
                 <div id="wrapper-player-name"><strong>Player Name:</strong> <span id="display-player-name">--</span></div>
                 <div id="wrapper-player-alliance" style="margin-top: 5px;"><strong>Alliance:</strong> <span id="display-player-alliance">--</span></div>
             </div>
-            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-                <div class="form-group">
-                    <label>City Level:</label>
-                    <select id="profile-city" disabled>
-                        <option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option>
-                        <option value="TG8">TG8</option><option value="TG9">TG9</option><option value="TG10">TG10</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Infantry Level:</label>
-                    <select id="profile-inf" disabled>
-                        <option value="TG10">TG10</option><option value="TG11">TG11</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Cavalry Level:</label>
-                    <select id="profile-cav" disabled>
-                        <option value="TG10">TG10</option><option value="TG11">TG11</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Archer Level:</label>
-                    <select id="profile-arch" disabled>
-                        <option value="TG10">TG10</option><option value="TG11">TG11</option>
-                    </select>
-                </div>
+                <div class="form-group"><label>City Level:</label><select id="profile-city" disabled><option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option><option value="TG8">TG8</option><option value="TG9">TG9</option><option value="TG10">TG10</option></select></div>
+                <div class="form-group"><label>Infantry Level:</label><select id="profile-inf" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
+                <div class="form-group"><label>Cavalry Level:</label><select id="profile-cav" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
+                <div class="form-group"><label>Archer Level:</label><select id="profile-arch" disabled><option value="TG10">TG10</option><option value="TG11">TG11</option></select></div>
             </div>
             <button id="profile-action-btn" class="btn btn-secondary" style="margin-top: 10px;" onclick="app.toggleProfileEditMode()">Edit Profile</button>
         </div>
-
-        <!-- Event list Navigation Section (Positioned under My Profile) -->
         <div class="event-section" id="event-actions-panel">
             <h2>Event list</h2>
             <div id="event-navigation-list"></div>
         </div>
-
-        <!-- On-Demand Active Working Board Section -->
         <div id="focused-event-workspace-root"></div>
-
-        <!-- Admin Control Panel (Strictly separate and hidden from members completely) -->
+        <!-- Manage events Section (Admin only) -->
         <div class="admin-section hidden" id="admin-control-cockpit">
-            <h2>R4 Control Panel</h2>
-            <button class="btn" id="admin-init-create-btn" onclick="app.showAdminCreateForm()">Create Event</button>
-            
+            <h2>Manage events</h2>
+            <button class="btn" id="admin-init-create-btn" onclick="app.showAdminCreateForm()">Create events</button>
             <div id="admin-create-form-wrapper" class="hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc;">
-                <div class="form-group">
-                    <label>Event Title</label>
-                    <input type="text" id="adm-title">
-                </div>
-                <div class="form-group">
-                    <label>Event Type</label>
-                    <select id="adm-type" onchange="app.handleAdminTemplatePopulate()">
-                        <option value="kvk_prep">KVK Preparation</option>
-                        <option value="kvk_battle">KVK Battle</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Strategy Text</label>
-                    <textarea id="adm-strategy"></textarea>
-                </div>
+                <div class="form-group"><label>Event Title</label><input type="text" id="adm-title"></div>
+                <div class="form-group"><label>Event Type</label><select id="adm-type" onchange="app.handleAdminTemplatePopulate()"><option value="kvk_prep">KVK Preparation</option><option value="kvk_battle">KVK Battle</option></select></div>
+                <div class="form-group"><label>Strategy Text</label><textarea id="adm-strategy"></textarea></div>
                 <button class="btn" onclick="app.launchNewOperation()">Submit New Event</button>
                 <button class="btn btn-secondary" onclick="app.hideAdminCreateForm()">Cancel</button>
             </div>
+            <div id="admin-event-list" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc;"></div>
+            <div id="admin-signup-display" style="margin-top: 20px;"></div>
         </div>
-
     </div>
 </div>
-
 <script>
-// 🛑 REPLACE THESE WITH YOUR EXACT SUPABASE ENDPOINT CONFIGURATIONS
-const SUPABASE_URL = "https://xuzoznicceskwulsmymq.supabase.co"; 
+const SUPABASE_URL = "https://xuzoznicceskwulsmymq.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1em96bmljY2Vza3d1bHNteW1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDE0NzQsImV4cCI6MjA5OTQxNzQ3NH0.5YCJ2EzXNGK23Sml7rAOHzY9JX5PZnUrjihDUlZpr8c";
-
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const TIME_SLOTS = ["23.45 utc - 00.15 utc (start of the day)"];
-for (let h = 0; h < 24; h++) {
-    let sh = String(h).padStart(2, '0');
-    TIME_SLOTS.push(`${sh}.15 utc - ${sh}.45 utc`);
-    if (h < 23) {
-        let nh = String(h + 1).padStart(2, '0');
-        TIME_SLOTS.push(`${sh}.45 utc - ${nh}.15 utc`);
-    }
-}
+for (let h = 0; h < 24; h++) { let sh = String(h).padStart(2, '0'); TIME_SLOTS.push(sh + ".15 utc - " + sh + ".45 utc"); if (h < 23) { let nh = String(h + 1).padStart(2, '0'); TIME_SLOTS.push(sh + ".45 utc - " + nh + ".15 utc"); } }
 TIME_SLOTS.push("23.45 utc - 00.15 utc (end of the day)");
 
 class AppConfig {
     constructor() {
-        this.currentUser = null;
-        this.eventsList = [];
-        this.allPlayers = [];
-        this.isEditingProfile = false;
-        
-        this.currentFocusedEvent = null;
-        this.currentFocusedUserResponse = null; 
-        this.currentEventOverviewData = [];
-        this.currentMatrixTab = 1;
+        this.currentUser = null; this.eventsList = []; this.allPlayers = []; this.isEditingProfile = false;
+        this.currentFocusedEvent = null; this.currentFocusedUserResponse = null;
+        this.currentEventOverviewData = []; this.currentMatrixTab = 1;
     }
-
     async init() {
-        try {
-            const savedId = localStorage.getItem('alliance_matrix_player_id');
-            if (savedId) {
-                document.getElementById('login-id').value = savedId;
-                await this.login();
-            }
-        } catch (err) {
-            console.error(err);
-        }
+        try { const savedId = localStorage.getItem('alliance_matrix_player_id'); if (savedId) { document.getElementById('login-id').value = savedId; await this.login(); } } catch (err) { console.error(err); }
     }
-
     async login() {
         const idInput = document.getElementById('login-id').value.trim();
         if(!idInput) return alert("Please enter your Player ID.");
-
         let { data: player } = await _supabase.from('players').select('*').eq('player_id', parseInt(idInput)).single();
         if (!player) return alert("Player ID not found.");
-
         this.currentUser = player;
         localStorage.setItem('alliance_matrix_player_id', idInput);
-
         document.getElementById('login-panel').classList.add('hidden');
         document.getElementById('global-logout-btn').classList.remove('hidden');
         document.getElementById('app-workspace').classList.remove('hidden');
-
         this.renderProfileSectionValues();
-
-        // Admin Access Guard Check
         if (player.access_level === 'admin') {
             document.getElementById('admin-control-cockpit').classList.remove('hidden');
             let { data: roster } = await _supabase.from('players').select('*');
@@ -316,16 +120,11 @@ class AppConfig {
         } else {
             document.getElementById('admin-control-cockpit').classList.add('hidden');
         }
-
         await this.loadOperationsNavigationList();
     }
-
     logout() {
-        this.currentUser = null;
-        this.isEditingProfile = false;
-        this.currentFocusedEvent = null;
-        this.currentFocusedUserResponse = null;
-        this.currentEventOverviewData = [];
+        this.currentUser = null; this.isEditingProfile = false;
+        this.currentFocusedEvent = null; this.currentFocusedUserResponse = null; this.currentEventOverviewData = [];
         localStorage.removeItem('alliance_matrix_player_id');
         document.getElementById('login-id').value = '';
         document.getElementById('app-workspace').classList.add('hidden');
@@ -333,590 +132,219 @@ class AppConfig {
         document.getElementById('login-panel').classList.remove('hidden');
         document.getElementById('focused-event-workspace-root').innerHTML = '';
         this.hideAdminCreateForm();
+        this.closeSignupDisplay();
     }
-
     renderProfileSectionValues() {
         if (!this.currentUser) return;
-        
         document.getElementById('display-player-id').innerText = this.currentUser.player_id;
-        
         if (!this.isEditingProfile) {
-            document.getElementById('wrapper-player-name').innerHTML = `<strong>Player Name:</strong> <span id="display-player-name">${this.currentUser.player_name || '--'}</span>`;
-            document.getElementById('wrapper-player-alliance').innerHTML = `<strong>Alliance:</strong> <span id="display-player-alliance">${this.currentUser.current_alliance || '--'}</span>`;
-            
-            document.getElementById('profile-city').disabled = true;
-            document.getElementById('profile-inf').disabled = true;
-            document.getElementById('profile-cav').disabled = true;
-            document.getElementById('profile-arch').disabled = true;
-            
+            document.getElementById('wrapper-player-name').innerHTML = '<strong>Player Name:</strong> <span id="display-player-name">' + (this.currentUser.player_name || '--') + '</span>';
+            document.getElementById('wrapper-player-alliance').innerHTML = '<strong>Alliance:</strong> <span id="display-player-alliance">' + (this.currentUser.current_alliance || '--') + '</span>';
+            document.getElementById('profile-city').disabled = true; document.getElementById('profile-inf').disabled = true;
+            document.getElementById('profile-cav').disabled = true; document.getElementById('profile-arch').disabled = true;
             document.getElementById('profile-action-btn').innerText = "Edit Profile";
         } else {
-            document.getElementById('wrapper-player-name').innerHTML = `<label style="display:inline-block; font-weight:bold; margin-right:5px;">Player Name:</label><input type="text" id="edit-player-name" value="${this.currentUser.player_name || ''}" style="width:200px; padding:4px;">`;
-            document.getElementById('wrapper-player-alliance').innerHTML = `<label style="display:inline-block; font-weight:bold; margin-right:5px;">Alliance:</label><input type="text" id="edit-player-alliance" value="${this.currentUser.current_alliance || ''}" style="width:200px; padding:4px;">`;
-            
-            document.getElementById('profile-city').disabled = false;
-            document.getElementById('profile-inf').disabled = false;
-            document.getElementById('profile-cav').disabled = false;
-            document.getElementById('profile-arch').disabled = false;
-            
+            document.getElementById('wrapper-player-name').innerHTML = '<label style="display:inline-block; font-weight:bold; margin-right:5px;">Player Name:</label><input type="text" id="edit-player-name" value="' + (this.currentUser.player_name || '') + '" style="width:200px; padding:4px;">';
+            document.getElementById('wrapper-player-alliance').innerHTML = '<label style="display:inline-block; font-weight:bold; margin-right:5px;">Alliance:</label><input type="text" id="edit-player-alliance" value="' + (this.currentUser.current_alliance || '') + '" style="width:200px; padding:4px;">';
+            document.getElementById('profile-city').disabled = false; document.getElementById('profile-inf').disabled = false;
+            document.getElementById('profile-cav').disabled = false; document.getElementById('profile-arch').disabled = false;
             document.getElementById('profile-action-btn').innerText = "Save Changes";
         }
-
         document.getElementById('profile-city').value = this.currentUser.city_level || "TG5";
         document.getElementById('profile-inf').value = this.currentUser.infantry_tier || "TG10";
         document.getElementById('profile-cav').value = this.currentUser.cavalry_tier || "TG10";
         document.getElementById('profile-arch').value = this.currentUser.archer_tier || "TG10";
     }
-
     async toggleProfileEditMode() {
-        if (!this.isEditingProfile) {
-            this.isEditingProfile = true;
-            this.renderProfileSectionValues();
-        } else {
+        if (!this.isEditingProfile) { this.isEditingProfile = true; this.renderProfileSectionValues(); }
+        else {
             const targetName = document.getElementById('edit-player-name').value.trim();
             const targetAlliance = document.getElementById('edit-player-alliance').value.trim();
-            
             if(!targetName) return alert("Player Name cannot be blank.");
-
-            const updatedFields = {
-                player_name: targetName,
-                current_alliance: targetAlliance,
-                city_level: document.getElementById('profile-city').value,
-                infantry_tier: document.getElementById('profile-inf').value,
-                cavalry_tier: document.getElementById('profile-cav').value,
-                archer_tier: document.getElementById('profile-arch').value
-            };
-
+            const updatedFields = { player_name: targetName, current_alliance: targetAlliance, city_level: document.getElementById('profile-city').value, infantry_tier: document.getElementById('profile-inf').value, cavalry_tier: document.getElementById('profile-cav').value, archer_tier: document.getElementById('profile-arch').value };
             const { error } = await _supabase.from('players').update(updatedFields).eq('player_id', parseInt(this.currentUser.player_id));
             if (error) return alert("Error saving profile changes: " + error.message);
-
             this.currentUser = { ...this.currentUser, ...updatedFields };
-            this.isEditingProfile = false;
-            this.renderProfileSectionValues();
+            this.isEditingProfile = false; this.renderProfileSectionValues();
             alert("Profile details updated successfully!");
         }
     }
-
     async loadOperationsNavigationList() {
         let { data: events, error } = await _supabase.from('events').select('*').order('created_at', { ascending: false });
         if (error) return console.error(error);
         this.eventsList = events || [];
-
         const targetNav = document.getElementById('event-navigation-list');
         if (this.eventsList.length === 0) {
-            targetNav.innerHTML = `<p style="color:#666; text-align:center;">No events listed.</p>`;
-            return;
+            targetNav.innerHTML = '<p style="color:#666; text-align:center;">No events listed.</p>';
+        } else {
+            targetNav.innerHTML = this.eventsList.map(ev => {
+                const statusLabel = ev.is_active ? '<span style="color:green; font-weight:bold;">[Active]</span>' : '<span style="color:#666;">[Closed]</span>';
+                const isOpened = this.currentFocusedEvent && this.currentFocusedEvent.event_id === ev.event_id;
+                const buttonText = isOpened ? 'Close Form' : 'View for ' + ev.event_title;
+                const clickAction = isOpened ? 'app.closeWorkspaceForm()' : "app.loadFocusedEventWorkspace('" + ev.event_id + "')";
+                return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + '</div><button class="btn btn-secondary" onclick="' + clickAction + '">' + buttonText + '</button></div>';
+            }).join('');
         }
-
-        targetNav.innerHTML = this.eventsList.map(ev => {
-            const statusLabel = ev.is_active ? `<span style="color:green; font-weight:bold;">[Active]</span>` : `<span style="color:#666;">[Closed]</span>`;
-            
-            // Check if this event is currently loaded in the workspace block to switch actions between view or close cleanly
-            const isOpened = this.currentFocusedEvent && this.currentFocusedEvent.event_id === ev.event_id;
-            const buttonText = isOpened ? `Close Form` : `View for ${ev.event_title}`;
-            const clickAction = isOpened ? `app.closeWorkspaceForm()` : `app.loadFocusedEventWorkspace('${ev.event_id}')`;
-
-            return `
-            <div class="event-action-item">
-                <div>
-                    <strong>${ev.event_title}</strong> ${statusLabel}
-                </div>
-                <button class="btn btn-secondary" onclick="${clickAction}">${buttonText}</button>
-            </div>`;
-        }).join('');
+        if (this.currentUser && this.currentUser.access_level === 'admin') { this.renderAdminEventList(); }
     }
-
     closeWorkspaceForm() {
-        this.currentFocusedEvent = null;
-        this.currentFocusedUserResponse = null;
+        this.currentFocusedEvent = null; this.currentFocusedUserResponse = null;
         document.getElementById('focused-event-workspace-root').innerHTML = '';
-        this.loadOperationsNavigationList(); // refresh buttons state
+        this.loadOperationsNavigationList();
     }
-
     async loadFocusedEventWorkspace(eventId) {
         const ev = this.eventsList.find(e => e.event_id === eventId);
         if(!ev) return;
-
-        this.currentFocusedEvent = ev;
-        this.currentMatrixTab = 1;
-
-        // Force reload navigation action panel buttons to mirror form opened context state change toggles
+        this.currentFocusedEvent = ev; this.currentMatrixTab = 1;
         await this.loadOperationsNavigationList();
-
-        let { data: participation, error } = await _supabase
-            .from('event_participations')
-            .select('*')
-            .eq('event_id', eventId)
-            .eq('player_id', parseInt(this.currentUser.player_id))
-            .maybeSingle();
-
+        let { data: participation, error } = await _supabase.from('event_participations').select('*').eq('event_id', eventId).eq('player_id', parseInt(this.currentUser.player_id)).maybeSingle();
         if (error) return alert("Error fetching response records.");
-
-        if (participation && participation.player_responses && typeof participation.player_responses === 'string') {
-            try { participation.player_responses = JSON.parse(participation.player_responses); } catch(e) { console.error(e); }
-        }
+        if (participation && participation.player_responses && typeof participation.player_responses === 'string') { try { participation.player_responses = JSON.parse(participation.player_responses); } catch(e) { console.error(e); } }
         this.currentFocusedUserResponse = participation ? participation.player_responses : null;
-
         const root = document.getElementById('focused-event-workspace-root');
         const isAdmin = this.currentUser.access_level === 'admin';
-        
         const disableAttr = ev.is_active ? '' : 'disabled';
         const submitBtnStyle = ev.is_active ? '' : 'style="display:none;"';
-
-        root.innerHTML = `
-        <div class="event-section" id="workspace-block-${ev.event_id}" style="background:#fff; margin-top:20px;">
-            <h2>Event form: ${ev.event_title}</h2>
-            
-            <div style="background:#f0f0f0; padding:10px; border-radius:4px; margin-bottom:15px; white-space:pre-wrap;">${ev.strategy_text || 'No strategic information.'}</div>
-
-            <form onsubmit="app.handleFormSubmit(event)">
-                <fieldset ${disableAttr} style="border:none; padding:0; margin:0;">
-                    <div id="form-inner-slots"></div>
-                    <button type="submit" class="btn" ${submitBtnStyle} style="margin-top:15px;">Submit Response</button>
-                </fieldset>
-            </form>
-
-            <!-- Event sign up overview -->
-            <div id="admin-overview-block" class="${isAdmin ? '' : 'hidden'}" style="margin-top:25px; padding-top:20px; border-top:2px solid #ccc;">
-                <h3>Event sign up overview</h3>
-                <button class="btn" onclick="app.displayLatestOverviewUpdate()">Display the latest update</button>
-                
-                <div id="tabs-row-overview" class="tabs hidden" style="margin-top:15px;">
-                    <div class="tab" id="tab-opt-1" onclick="app.switchOverviewTab(1)">Day 1: Build</div>
-                    <div class="tab" id="tab-opt-2" onclick="app.switchOverviewTab(2)">Day 2: Research</div>
-                    <div class="tab" id="tab-opt-3" onclick="app.switchOverviewTab(3)">Day 3: Cooking</div>
-                </div>
-                <div id="summary-overview" class="summary-bar hidden"></div>
-                
-                <table id="table-overview" class="hidden">
-                    <thead><tr id="th-overview"><th>Player Name</th></tr></thead>
-                    <tbody id="tb-overview"></tbody>
-                </table>
-                <button id="bulk-save-overview-btn" class="btn hidden" style="margin-top:15px;" onclick="app.saveBulkCombatAssignments()">Save Assignments</button>
-            </div>
-        </div>`;
-
+        root.innerHTML = '<div class="event-section" id="workspace-block-' + ev.event_id + '" style="background:#fff; margin-top:20px;"><h2>Event form: ' + ev.event_title + '</h2><div style="background:#f0f0f0; padding:10px; border-radius:4px; margin-bottom:15px; white-space:pre-wrap;">' + (ev.strategy_text || 'No strategic information.') + '</div><form onsubmit="app.handleFormSubmit(event)"><fieldset ' + disableAttr + ' style="border:none; padding:0; margin:0;"><div id="form-inner-slots"></div><button type="submit" class="btn" ' + submitBtnStyle + ' style="margin-top:15px;">Submit Response</button></fieldset></form><div id="admin-overview-block" class="' + (isAdmin ? '' : 'hidden') + '" style="margin-top:25px; padding-top:20px; border-top:2px solid #ccc;"><h3>Event sign up overview</h3><button class="btn" onclick="app.displayLatestOverviewUpdate()">Display the latest update</button><div id="tabs-row-overview" class="tabs hidden" style="margin-top:15px;"><div class="tab" id="tab-opt-1" onclick="app.switchOverviewTab(1)">Day 1: Build</div><div class="tab" id="tab-opt-2" onclick="app.switchOverviewTab(2)">Day 2: Research</div><div class="tab" id="tab-opt-3" onclick="app.switchOverviewTab(3)">Day 3: Cooking</div></div><div id="summary-overview" class="summary-bar hidden"></div><table id="table-overview" class="hidden"><thead><tr id="th-overview"><th>Player Name</th></tr></thead><tbody id="tb-overview"></tbody></table><button id="bulk-save-overview-btn" class="btn hidden" style="margin-top:15px;" onclick="app.saveBulkCombatAssignments()">Save Assignments</button></div></div>';
         this.buildInnerFormMarkup(ev.event_type);
         this.populateFormFieldsFromMemory(ev.event_type);
-        document.getElementById(`workspace-block-${ev.event_id}`).scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('workspace-block-' + ev.event_id).scrollIntoView({ behavior: 'smooth' });
     }
-
     buildInnerFormMarkup(type) {
         const target = document.getElementById('form-inner-slots');
         if(type === 'kvk_prep') {
-            target.innerHTML = `
-            <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <label style="color:#0056b3; font-size:14px;">Request Chief Minister Title Day 1 (+10% Build)?</label>
-                <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d1-y" onclick="app.setFormToggleUi('d1',true)">YES</div>
-                    <div class="toggle-btn" id="t-d1-n" onclick="app.setFormToggleUi('d1',false)">NO</div>
-                </div>
-                <div id="fields-d1" class="hidden" style="margin-top:10px;">
-                    <label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label>
-                    <div class="checkbox-grid" id="grid-d1"></div>
-                    <div class="form-group">
-                        <label for="input-d1-speeds">Construction Speedups (Whole Days):</label>
-                        <input type="number" id="input-d1-speeds">
-                    </div>
-                    <div class="form-group">
-                        <label for="input-d1-gold">True Gold Count:</label>
-                        <input type="number" id="input-d1-gold">
-                    </div>
-                    <div class="form-group">
-                        <label for="input-d1-tempered">Tempered Gold Count:</label>
-                        <input type="number" id="input-d1-tempered">
-                    </div>
-                </div>
-            </div>
-            <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <label style="color:#0056b3; font-size:14px;">Request Chief Minister Title Day 2 (+10% Tech)?</label>
-                <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d2-y" onclick="app.setFormToggleUi('d2',true)">YES</div>
-                    <div class="toggle-btn" id="t-d2-n" onclick="app.setFormToggleUi('d2',false)">NO</div>
-                </div>
-                <div id="fields-d2" class="hidden" style="margin-top:10px;">
-                    <label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label>
-                    <div class="checkbox-grid" id="grid-d2"></div>
-                    <div class="form-group">
-                        <label for="input-d2-speeds">Research Speedups (Whole Days):</label>
-                        <input type="number" id="input-d2-speeds">
-                    </div>
-                    <div class="form-group">
-                        <label for="input-d2-dust">True Gold Dust Count:</label>
-                        <input type="number" id="input-d2-dust">
-                    </div>
-                </div>
-            </div>
-            <div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
-                <label style="color:#0056b3; font-size:14px;">Request Noble Advisor Title Day 3 (+50% buff)?</label>
-                <div class="toggle-group">
-                    <div class="toggle-btn" id="t-d3-y" onclick="app.setFormToggleUi('d3',true)">YES</div>
-                    <div class="toggle-btn" id="t-d3-n" onclick="app.setFormToggleUi('d3',false)">NO</div>
-                </div>
-                <div id="fields-d3" class="hidden" style="margin-top:10px;">
-                    <label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label>
-                    <div class="checkbox-grid" id="grid-d3"></div>
-                    <div class="form-group">
-                        <label for="input-d3-speeds">Training Speedups (Whole Days):</label>
-                        <input type="number" id="input-d3-speeds">
-                    </div>
-                </div>
-            </div>`;
-            
-            ['d1','d2','d3'].forEach(day => {
-                const grid = document.getElementById(`grid-${day}`);
-                if (grid) {
-                    grid.innerHTML = TIME_SLOTS.map((slot, i) => `
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="chk-${day}-${i}" value="${slot}">
-                            <span>${slot}</span>
-                        </div>`).join('');
-                }
-            });
+            target.innerHTML = '<div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;"><label style="color:#0056b3; font-size:14px;">Request Chief Minister Title Day 1 (+10% Build)?</label><div class="toggle-group"><div class="toggle-btn" id="t-d1-y" onclick="app.setFormToggleUi(\'d1\',true)">YES</div><div class="toggle-btn" id="t-d1-n" onclick="app.setFormToggleUi(\'d1\',false)">NO</div></div><div id="fields-d1" class="hidden" style="margin-top:10px;"><label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label><div class="checkbox-grid" id="grid-d1"></div><div class="form-group"><label for="input-d1-speeds">Construction Speedups (Whole Days):</label><input type="number" id="input-d1-speeds"></div><div class="form-group"><label for="input-d1-gold">True Gold Count:</label><input type="number" id="input-d1-gold"></div><div class="form-group"><label for="input-d1-tempered">Tempered Gold Count:</label><input type="number" id="input-d1-tempered"></div></div></div><div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;"><label style="color:#0056b3; font-size:14px;">Request Chief Minister Title Day 2 (+10% Tech)?</label><div class="toggle-group"><div class="toggle-btn" id="t-d2-y" onclick="app.setFormToggleUi(\'d2\',true)">YES</div><div class="toggle-btn" id="t-d2-n" onclick="app.setFormToggleUi(\'d2\',false)">NO</div></div><div id="fields-d2" class="hidden" style="margin-top:10px;"><label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label><div class="checkbox-grid" id="grid-d2"></div><div class="form-group"><label for="input-d2-speeds">Research Speedups (Whole Days):</label><input type="number" id="input-d2-speeds"></div><div class="form-group"><label for="input-d2-dust">True Gold Dust Count:</label><input type="number" id="input-d2-dust"></div></div></div><div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;"><label style="color:#0056b3; font-size:14px;">Request Noble Advisor Title Day 3 (+50% buff)?</label><div class="toggle-group"><div class="toggle-btn" id="t-d3-y" onclick="app.setFormToggleUi(\'d3\',true)">YES</div><div class="toggle-btn" id="t-d3-n" onclick="app.setFormToggleUi(\'d3\',false)">NO</div></div><div id="fields-d3" class="hidden" style="margin-top:10px;"><label style="font-size:12px; margin-bottom:5px;">Select Hours Window:</label><div class="checkbox-grid" id="grid-d3"></div><div class="form-group"><label for="input-d3-speeds">Training Speedups (Whole Days):</label><input type="number" id="input-d3-speeds"></div></div></div>';
+            ['d1','d2','d3'].forEach(day => { const grid = document.getElementById('grid-' + day); if (grid) { grid.innerHTML = TIME_SLOTS.map((slot, i) => '<div class="checkbox-item"><input type="checkbox" id="chk-' + day + '-' + i + '" value="' + slot + '"><span>' + slot + '</span></div>').join(''); } });
             ['d1','d2','d3'].forEach(day => this.setFormToggleUi(day, false));
         } else {
-            target.innerHTML = `
-            <div class="form-group">
-                <label>Select Deployment Parameters:</label>
-                <div class="toggle-group">
-                    <div class="toggle-btn" id="bt-need" onclick="app.setCombatStatusUi('needed')">As long as needed</div>
-                    <div class="toggle-btn" id="bt-cant" onclick="app.setCombatStatusUi('cannot')">Cannot Plan</div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="input-custom-text">Custom Hours / Availability Text:</label>
-                <textarea id="input-custom-text"></textarea>
-            </div>`;
+            target.innerHTML = '<div class="form-group"><label>Select Deployment Parameters:</label><div class="toggle-group"><div class="toggle-btn" id="bt-need" onclick="app.setCombatStatusUi(\'needed\')">As long as needed</div><div class="toggle-btn" id="bt-cant" onclick="app.setCombatStatusUi(\'cannot\')">Cannot Plan</div></div></div><div class="form-group"><label for="input-custom-text">Custom Hours / Availability Text:</label><textarea id="input-custom-text"></textarea></div>';
             this.setCombatStatusUi('needed');
         }
     }
-
     setFormToggleUi(day, val) {
-        const yesBtn = document.getElementById(`t-${day}-y`);
-        const noBtn = document.getElementById(`t-${day}-n`);
-        const fieldsDiv = document.getElementById(`fields-${day}`);
-        
+        const yesBtn = document.getElementById('t-' + day + '-y'); const noBtn = document.getElementById('t-' + day + '-n'); const fieldsDiv = document.getElementById('fields-' + day);
         if(yesBtn) { if(val) yesBtn.classList.add('active'); else yesBtn.classList.remove('active'); }
         if(noBtn) { if(!val) noBtn.classList.add('active'); else noBtn.classList.remove('active'); }
         if(fieldsDiv) fieldsDiv.className = val ? '' : 'hidden';
     }
-
     setCombatStatusUi(status) {
-        const needBtn = document.getElementById(`bt-need`);
-        const cantBtn = document.getElementById(`bt-cant`);
+        const needBtn = document.getElementById('bt-need'); const cantBtn = document.getElementById('bt-cant');
         if(needBtn) { if(status === 'needed') needBtn.classList.add('active'); else needBtn.classList.remove('active'); }
         if(cantBtn) { if(status === 'cannot') cantBtn.classList.add('active'); else cantBtn.classList.remove('active'); }
     }
-
     populateFormFieldsFromMemory(type) {
-        let res = this.currentFocusedUserResponse;
-        if(!res) return;
-
+        let res = this.currentFocusedUserResponse; if(!res) return;
         if(type === 'kvk_prep') {
-            if(res.d1_opt_in) {
-                this.setFormToggleUi('d1', true);
-                if(document.getElementById(`input-d1-speeds`)) document.getElementById(`input-d1-speeds`).value = res.d1_speeds ?? '';
-                if(document.getElementById(`input-d1-gold`)) document.getElementById(`input-d1-gold`).value = res.d1_gold ?? '';
-                if(document.getElementById(`input-d1-tempered`)) document.getElementById(`input-d1-tempered`).value = res.d1_tempered ?? '';
-                TIME_SLOTS.forEach((slot, i) => { 
-                    const chk = document.getElementById(`chk-d1-${i}`);
-                    if(chk) chk.checked = !!(res.d1_slots && res.d1_slots.includes(slot));
-                });
-            }
-            if(res.d2_opt_in) {
-                this.setFormToggleUi('d2', true);
-                if(document.getElementById(`input-d2-speeds`)) document.getElementById(`input-d2-speeds`).value = res.d2_speeds ?? '';
-                if(document.getElementById(`input-d2-dust`)) document.getElementById(`input-d2-dust`).value = res.d2_dust ?? '';
-                TIME_SLOTS.forEach((slot, i) => { 
-                    const chk = document.getElementById(`chk-d2-${i}`);
-                    if(chk) chk.checked = !!(res.d2_slots && res.d2_slots.includes(slot));
-                });
-            }
-            if(res.d3_opt_in) {
-                this.setFormToggleUi('d3', true);
-                if(document.getElementById(`input-d3-speeds`)) document.getElementById(`input-d3-speeds`).value = res.d3_speeds ?? '';
-                TIME_SLOTS.forEach((slot, i) => { 
-                    const chk = document.getElementById(`chk-d3-${i}`);
-                    if(chk) chk.checked = !!(res.d3_slots && res.d3_slots.includes(slot));
-                });
-            }
-        } else {
-            this.setCombatStatusUi(res.combat_status || 'needed');
-            const ct = document.getElementById('input-custom-text');
-            if(ct) ct.value = res.custom_hours || '';
-        }
+            if(res.d1_opt_in) { this.setFormToggleUi('d1', true); if(document.getElementById('input-d1-speeds')) document.getElementById('input-d1-speeds').value = res.d1_speeds ?? ''; if(document.getElementById('input-d1-gold')) document.getElementById('input-d1-gold').value = res.d1_gold ?? ''; if(document.getElementById('input-d1-tempered')) document.getElementById('input-d1-tempered').value = res.d1_tempered ?? ''; TIME_SLOTS.forEach((slot, i) => { const chk = document.getElementById('chk-d1-' + i); if(chk) chk.checked = !!(res.d1_slots && res.d1_slots.includes(slot)); }); }
+            if(res.d2_opt_in) { this.setFormToggleUi('d2', true); if(document.getElementById('input-d2-speeds')) document.getElementById('input-d2-speeds').value = res.d2_speeds ?? ''; if(document.getElementById('input-d2-dust')) document.getElementById('input-d2-dust').value = res.d2_dust ?? ''; TIME_SLOTS.forEach((slot, i) => { const chk = document.getElementById('chk-d2-' + i); if(chk) chk.checked = !!(res.d2_slots && res.d2_slots.includes(slot)); }); }
+            if(res.d3_opt_in) { this.setFormToggleUi('d3', true); if(document.getElementById('input-d3-speeds')) document.getElementById('input-d3-speeds').value = res.d3_speeds ?? ''; TIME_SLOTS.forEach((slot, i) => { const chk = document.getElementById('chk-d3-' + i); if(chk) chk.checked = !!(res.d3_slots && res.d3_slots.includes(slot)); }); }
+        } else { this.setCombatStatusUi(res.combat_status || 'needed'); const ct = document.getElementById('input-custom-text'); if(ct) ct.value = res.custom_hours || ''; }
     }
-
     async handleFormSubmit(e) {
-        e.preventDefault();
-        if(!this.currentFocusedEvent) return;
-
-        const eventId = this.currentFocusedEvent.event_id;
-        const type = this.currentFocusedEvent.event_type;
-        let responses = {};
-        let summaryLines = [];
-
+        e.preventDefault(); if(!this.currentFocusedEvent) return;
+        const eventId = this.currentFocusedEvent.event_id; const type = this.currentFocusedEvent.event_type; let responses = {}; let summaryLines = [];
         if(type === 'kvk_prep') {
-            const d1Active = document.getElementById('t-d1-y')?.classList.contains('active');
-            const d2Active = document.getElementById('t-d2-y')?.classList.contains('active');
-            const d3Active = document.getElementById('t-d3-y')?.classList.contains('active');
-
-            if(d1Active) {
-                responses.d1_opt_in = true;
-                responses.d1_speeds = parseInt(document.getElementById('input-d1-speeds').value) || 0;
-                responses.d1_gold = parseInt(document.getElementById('input-d1-gold').value) || 0;
-                responses.d1_tempered = parseInt(document.getElementById('input-d1-tempered').value) || 0;
-                responses.d1_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d1-${i}`)?.checked) responses.d1_slots.push(slot); });
-                summaryLines.push(`- Day 1 (Build): Yes [Speedups: ${responses.d1_speeds}d, True Gold Count: ${responses.d1_gold}, Tempered Gold Count: ${responses.d1_tempered}, Slots Checked: ${responses.d1_slots.length}]`);
-            } else {
-                summaryLines.push(`- Day 1 (Build): No`);
-            }
-            if(d2Active) {
-                responses.d2_opt_in = true;
-                responses.d2_speeds = parseInt(document.getElementById('input-d2-speeds').value) || 0;
-                responses.d2_dust = parseInt(document.getElementById('input-d2-dust').value) || 0;
-                responses.d2_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d2-${i}`)?.checked) responses.d2_slots.push(slot); });
-                summaryLines.push(`- Day 2 (Research): Yes [Speedups: ${responses.d2_speeds}d, True Gold Dust Count: ${responses.d2_dust}, Slots Checked: ${responses.d2_slots.length}]`);
-            } else {
-                summaryLines.push(`- Day 2 (Research): No`);
-            }
-            if(d3Active) {
-                responses.d3_opt_in = true;
-                responses.d3_speeds = parseInt(document.getElementById('input-d3-speeds').value) || 0;
-                responses.d3_slots = [];
-                TIME_SLOTS.forEach((slot, i) => { if(document.getElementById(`chk-d3-${i}`)?.checked) responses.d3_slots.push(slot); });
-                summaryLines.push(`- Day 3 (Cooking): Yes [Speedups: ${responses.d3_speeds}d, Slots Checked: ${responses.d3_slots.length}]`);
-            } else {
-                summaryLines.push(`- Day 3 (Cooking): No`);
-            }
+            const d1Active = document.getElementById('t-d1-y')?.classList.contains('active'); const d2Active = document.getElementById('t-d2-y')?.classList.contains('active'); const d3Active = document.getElementById('t-d3-y')?.classList.contains('active');
+            if(d1Active) { responses.d1_opt_in = true; responses.d1_speeds = parseInt(document.getElementById('input-d1-speeds').value) || 0; responses.d1_gold = parseInt(document.getElementById('input-d1-gold').value) || 0; responses.d1_tempered = parseInt(document.getElementById('input-d1-tempered').value) || 0; responses.d1_slots = []; TIME_SLOTS.forEach((slot, i) => { if(document.getElementById('chk-d1-' + i)?.checked) responses.d1_slots.push(slot); }); summaryLines.push('- Day 1 (Build): Yes [Speedups: ' + responses.d1_speeds + 'd, True Gold Count: ' + responses.d1_gold + ', Tempered Gold Count: ' + responses.d1_tempered + ', Slots Checked: ' + responses.d1_slots.length + ']'); } else { summaryLines.push('- Day 1 (Build): No'); }
+            if(d2Active) { responses.d2_opt_in = true; responses.d2_speeds = parseInt(document.getElementById('input-d2-speeds').value) || 0; responses.d2_dust = parseInt(document.getElementById('input-d2-dust').value) || 0; responses.d2_slots = []; TIME_SLOTS.forEach((slot, i) => { if(document.getElementById('chk-d2-' + i)?.checked) responses.d2_slots.push(slot); }); summaryLines.push('- Day 2 (Research): Yes [Speedups: ' + responses.d2_speeds + 'd, True Gold Dust Count: ' + responses.d2_dust + ', Slots Checked: ' + responses.d2_slots.length + ']'); } else { summaryLines.push('- Day 2 (Research): No'); }
+            if(d3Active) { responses.d3_opt_in = true; responses.d3_speeds = parseInt(document.getElementById('input-d3-speeds').value) || 0; responses.d3_slots = []; TIME_SLOTS.forEach((slot, i) => { if(document.getElementById('chk-d3-' + i)?.checked) responses.d3_slots.push(slot); }); summaryLines.push('- Day 3 (Cooking): Yes [Speedups: ' + responses.d3_speeds + 'd, Slots Checked: ' + responses.d3_slots.length + ']'); } else { summaryLines.push('- Day 3 (Cooking): No'); }
         } else {
-            const cantActive = document.getElementById('bt-cant')?.classList.contains('active');
-            responses.combat_status = cantActive ? 'cannot' : 'needed';
-            responses.custom_hours = document.getElementById('input-custom-text')?.value.trim() || '';
-            summaryLines.push(`- Deployment Status: ${responses.combat_status === 'cannot' ? 'Cannot Plan' : 'As long as needed'}`);
-            if(responses.custom_hours) summaryLines.push(`- Notes: "${responses.custom_hours}"`);
+            const cantActive = document.getElementById('bt-cant')?.classList.contains('active'); responses.combat_status = cantActive ? 'cannot' : 'needed'; responses.custom_hours = document.getElementById('input-custom-text')?.value.trim() || '';
+            summaryLines.push('- Deployment Status: ' + (responses.combat_status === 'cannot' ? 'Cannot Plan' : 'As long as needed')); if(responses.custom_hours) summaryLines.push('- Notes: "' + responses.custom_hours + '"');
         }
-
-        const { data: databaseCheck, error: fetchErr } = await _supabase
-            .from('event_participations')
-            .select('event_id, player_id')
-            .eq('event_id', eventId)
-            .eq('player_id', parseInt(this.currentUser.player_id))
-            .maybeSingle();
-
+        const { data: databaseCheck, error: fetchErr } = await _supabase.from('event_participations').select('event_id, player_id').eq('event_id', eventId).eq('player_id', parseInt(this.currentUser.player_id)).maybeSingle();
         if (fetchErr) return alert("Verification lookup error: " + fetchErr.message);
-
         let syncError = null;
-
-        if (databaseCheck) {
-            const { error: updateError } = await _supabase
-                .from('event_participations')
-                .update({
-                    player_responses: responses,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('event_id', eventId)
-                .eq('player_id', parseInt(this.currentUser.player_id));
-            syncError = updateError;
-        } else {
-            const { error: insertError } = await _supabase
-                .from('event_participations')
-                .insert({
-                    event_id: eventId,
-                    player_id: parseInt(this.currentUser.player_id),
-                    player_responses: responses,
-                    updated_at: new Date().toISOString()
-                });
-            syncError = insertError;
-        }
-
+        if (databaseCheck) { const { error: updateError } = await _supabase.from('event_participations').update({ player_responses: responses, updated_at: new Date().toISOString() }).eq('event_id', eventId).eq('player_id', parseInt(this.currentUser.player_id)); syncError = updateError; }
+        else { const { error: insertError } = await _supabase.from('event_participations').insert({ event_id: eventId, player_id: parseInt(this.currentUser.player_id), player_responses: responses, updated_at: new Date().toISOString() }); syncError = insertError; }
         if(syncError) return alert("Database Sync Error: " + syncError.message);
-
-        // 🌟 Clear UX Alert + Close form on submit confirmation flow match
-        const alertMessage = `You selected:\n\n${summaryLines.join('\n')}\n\nAbove details are submitted successfully!`;
-        alert(alertMessage);
-        
+        alert('You selected:\n\n' + summaryLines.join('\n') + '\n\nAbove details are submitted successfully!');
         this.closeWorkspaceForm();
     }
-
-    // --- ADMIN VISIBILITY LAYER ACTIONS ---
-    
-    showAdminCreateForm() {
-        document.getElementById('admin-create-form-wrapper').classList.remove('hidden');
-        document.getElementById('admin-init-create-btn').classList.add('hidden');
-    }
-
-    hideAdminCreateForm() {
-        document.getElementById('admin-create-form-wrapper').classList.add('hidden');
-        document.getElementById('admin-init-create-btn').classList.remove('hidden');
-        document.getElementById('adm-title').value = '';
-        document.getElementById('adm-strategy').value = '';
-    }
-
-    handleAdminTemplatePopulate() {
-        const type = document.getElementById('adm-type').value;
-        const baseTemplates = {
-            kvk_prep: "KVK PREPARATION PHASE\n• Complete target declarations below.",
-            kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below."
-        };
-        document.getElementById('adm-strategy').value = baseTemplates[type];
-    }
-
+    // --- ADMIN ---
+    showAdminCreateForm() { document.getElementById('admin-create-form-wrapper').classList.remove('hidden'); document.getElementById('admin-init-create-btn').classList.add('hidden'); }
+    hideAdminCreateForm() { document.getElementById('admin-create-form-wrapper').classList.add('hidden'); document.getElementById('admin-init-create-btn').classList.remove('hidden'); document.getElementById('adm-title').value = ''; document.getElementById('adm-strategy').value = ''; }
+    handleAdminTemplatePopulate() { const type = document.getElementById('adm-type').value; const baseTemplates = { kvk_prep: "KVK PREPARATION PHASE\n• Complete target declarations below.", kvk_battle: "KVK COMBAT OPERATIONS\n• Track war alliance configurations below." }; document.getElementById('adm-strategy').value = baseTemplates[type]; }
     async launchNewOperation() {
-        const title = document.getElementById('adm-title').value.trim();
-        const type = document.getElementById('adm-type').value;
-        const strategy = document.getElementById('adm-strategy').value;
-
+        const title = document.getElementById('adm-title').value.trim(); const type = document.getElementById('adm-type').value; const strategy = document.getElementById('adm-strategy').value;
         if(!title) return alert("Event title required.");
-
-        await _supabase.from('events').insert({
-            event_title: title,
-            event_type: type,
-            strategy_text: strategy,
-            is_active: true
-        });
-
-        alert("New Event Created!");
-        this.hideAdminCreateForm();
-        await this.loadOperationsNavigationList();
+        await _supabase.from('events').insert({ event_title: title, event_type: type, strategy_text: strategy, is_active: true });
+        alert("New Event Created!"); this.hideAdminCreateForm(); await this.loadOperationsNavigationList();
     }
-
+    renderAdminEventList() {
+        const target = document.getElementById('admin-event-list'); if (!target) return;
+        if (this.eventsList.length === 0) { target.innerHTML = '<p style="color:#666; text-align:center;">No events created yet.</p>'; return; }
+        target.innerHTML = this.eventsList.map(ev => {
+            const statusLabel = ev.is_active ? '<span style="color:green; font-weight:bold;">[Active]</span>' : '<span style="color:#666;">[Closed]</span>';
+            const signupBtn = ev.is_active ? '<button class="btn btn-secondary" onclick="app.viewLatestSignup(\'' + ev.event_id + '\')">View latest sign up</button>' : '<span style="color:#999; font-size:12px;">Sign up view available when active</span>';
+            return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div>' + signupBtn + '</div></div>';
+        }).join('');
+    }
+    async viewLatestSignup(eventId) {
+        const ev = this.eventsList.find(e => e.event_id === eventId); if (!ev) return;
+        let { data: parts, error } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', eventId).order('updated_at', { ascending: false });
+        if (error) return alert("Failed to fetch sign up records: " + error.message);
+        parts = (parts || []).map(p => { if (p.player_responses && typeof p.player_responses === 'string') { try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); } } return p; });
+        const display = document.getElementById('admin-signup-display');
+        if (parts.length === 0) { display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="color:#666; text-align:center;">No players have submitted a form for this event yet.</p><button class="btn btn-secondary" onclick="app.closeSignupDisplay()">Close</button>'; display.scrollIntoView({ behavior: 'smooth' }); return; }
+        const type = ev.event_type;
+        const rows = parts.map(p => {
+            const r = p.player_responses || {}; const user = p.players || { player_name: 'Unknown', player_id: p.player_id };
+            const pStr = (user.city_level || '--') + '/' + (user.infantry_tier || '--') + '/' + (user.cavalry_tier || '--') + '/' + (user.archer_tier || '--');
+            let details = '';
+            if (type === 'kvk_prep') {
+                const lines = [];
+                lines.push('Day 1 (Build): ' + (r.d1_opt_in ? '✅ Yes' : '❌ No'));
+                if (r.d1_opt_in) lines.push('  Speeds: ' + (r.d1_speeds || 0) + 'd | Gold: ' + (r.d1_gold || 0) + ' | Tempered: ' + (r.d1_tempered || 0) + ' | Slots: ' + (r.d1_slots || []).length);
+                lines.push('Day 2 (Research): ' + (r.d2_opt_in ? '✅ Yes' : '❌ No'));
+                if (r.d2_opt_in) lines.push('  Speeds: ' + (r.d2_speeds || 0) + 'd | Dust: ' + (r.d2_dust || 0) + ' | Slots: ' + (r.d2_slots || []).length);
+                lines.push('Day 3 (Cooking): ' + (r.d3_opt_in ? '✅ Yes' : '❌ No'));
+                if (r.d3_opt_in) lines.push('  Speeds: ' + (r.d3_speeds || 0) + 'd | Slots: ' + (r.d3_slots || []).length);
+                details = lines.join('<br>');
+            } else {
+                const lines = [];
+                lines.push('Status: ' + (r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'));
+                if (r.custom_hours) lines.push('Notes: "' + r.custom_hours + '"');
+                details = lines.join('<br>');
+            }
+            const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
+            return '<tr><td><strong>' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
+        }).join('');
+        display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="font-size:13px; color:#666; margin-bottom:10px;">' + parts.length + ' player(s) have submitted a form.</p><table><thead><tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th><th>Submitted At</th></tr></thead><tbody>' + rows + '</tbody></table><button class="btn btn-secondary" style="margin-top:15px;" onclick="app.closeSignupDisplay()">Close</button>';
+        display.scrollIntoView({ behavior: 'smooth' });
+    }
+    closeSignupDisplay() { const display = document.getElementById('admin-signup-display'); if (display) display.innerHTML = ''; }
     async displayLatestOverviewUpdate() {
-        if (!this.currentFocusedEvent) return;
-        const eventId = this.currentFocusedEvent.event_id;
-
-        let { data: parts, error } = await _supabase
-            .from('event_participations')
-            .select('*, players(*)')
-            .eq('event_id', eventId);
-
+        if (!this.currentFocusedEvent) return; const eventId = this.currentFocusedEvent.event_id;
+        let { data: parts, error } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', eventId);
         if(error) return alert("Failed to fetch matrix update metrics.");
-
-        this.currentEventOverviewData = (parts || []).map(p => {
-            if (p.player_responses && typeof p.player_responses === 'string') {
-                try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); }
-            }
-            return p;
-        });
-
-        document.getElementById('table-overview').classList.remove('hidden');
-        this.drawOverviewGrid();
+        this.currentEventOverviewData = (parts || []).map(p => { if (p.player_responses && typeof p.player_responses === 'string') { try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); } } return p; });
+        document.getElementById('table-overview').classList.remove('hidden'); this.drawOverviewGrid();
     }
-
-    switchOverviewTab(dayNum) {
-        this.currentMatrixTab = dayNum;
-        this.drawOverviewGrid();
-    }
-
+    switchOverviewTab(dayNum) { this.currentMatrixTab = dayNum; this.drawOverviewGrid(); }
     drawOverviewGrid() {
-        const type = this.currentFocusedEvent.event_type;
-        const th = document.getElementById('th-overview');
-        const tb = document.getElementById('tb-overview');
-        const banner = document.getElementById('summary-overview');
-        const tabRow = document.getElementById('tabs-row-overview');
-        
+        const type = this.currentFocusedEvent.event_type; const th = document.getElementById('th-overview'); const tb = document.getElementById('tb-overview'); const banner = document.getElementById('summary-overview'); const tabRow = document.getElementById('tabs-row-overview');
         if (type === 'kvk_prep') {
-            if(tabRow) tabRow.classList.remove('hidden');
-            if(banner) banner.classList.remove('hidden');
-
-            [1, 2, 3].forEach(d => {
-                const tabEl = document.getElementById(`tab-opt-${d}`);
-                if(tabEl) tabEl.className = `tab ${d === this.currentMatrixTab ? 'active' : ''}`;
-            });
-
+            if(tabRow) tabRow.classList.remove('hidden'); if(banner) banner.classList.remove('hidden');
+            [1, 2, 3].forEach(d => { const tabEl = document.getElementById('tab-opt-' + d); if(tabEl) tabEl.className = 'tab ' + (d === this.currentMatrixTab ? 'active' : ''); });
             let activeTitleRequests = 0, aggregateSpeeds = 0, resourceAgg = 0;
-            this.currentEventOverviewData.forEach(p => {
-                let r = p.player_responses || {};
-                if(this.currentMatrixTab === 1 && r.d1_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d1_speeds || 0); resourceAgg += (r.d1_gold || 0); }
-                if(this.currentMatrixTab === 2 && r.d2_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d2_speeds || 0); resourceAgg += (r.d2_dust || 0); }
-                if(this.currentMatrixTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); }
-            });
-
-            if(banner) {
-                if(this.currentMatrixTab === 1) banner.innerHTML = `Day 1 Summary: ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold Count: ${resourceAgg}`;
-                if(this.currentMatrixTab === 2) banner.innerHTML = `Day 2 Summary: ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
-                if(this.currentMatrixTab === 3) banner.innerHTML = `Day 3 Summary: ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
-            }
-
-            if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
-            if(tb) {
-                tb.innerHTML = this.currentEventOverviewData.map(p => {
-                    let r = p.player_responses || {};
-                    const user = p.players || { player_name: 'Unknown User' };
-                    const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
-                    
-                    let valOpt = "❌ No";
-                    let valSlots = "--";
-                    let valRes = "--";
-                    if(this.currentMatrixTab === 1 && r.d1_opt_in) { valOpt = "✅ Yes"; valSlots = r.d1_slots?.join(', ') || ''; valRes = `🏗️ ${r.d1_speeds}d Speeds / ${r.d1_gold} Gold / ${r.d1_tempered} Temp`; }
-                    if(this.currentMatrixTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
-                    if(this.currentMatrixTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
-
-                    return `<tr><td><strong>${user.player_name}</strong></td><td>${user.current_alliance || '--'}</td><td>${pStr}</td><td>${valOpt}</td><td>${valSlots}</td><td>${valRes}</td></tr>`;
-                }).join('');
-            }
+            this.currentEventOverviewData.forEach(p => { let r = p.player_responses || {}; if(this.currentMatrixTab === 1 && r.d1_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d1_speeds || 0); resourceAgg += (r.d1_gold || 0); } if(this.currentMatrixTab === 2 && r.d2_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d2_speeds || 0); resourceAgg += (r.d2_dust || 0); } if(this.currentMatrixTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); } });
+            if(banner) { if(this.currentMatrixTab === 1) banner.innerHTML = 'Day 1 Summary: ' + activeTitleRequests + ' Title Requests | Construction Speedups: ' + aggregateSpeeds + 'd | Total True Gold Count: ' + resourceAgg; if(this.currentMatrixTab === 2) banner.innerHTML = 'Day 2 Summary: ' + activeTitleRequests + ' Title Requests | Research Speedups: ' + aggregateSpeeds + 'd | Total Dust Assets: ' + resourceAgg; if(this.currentMatrixTab === 3) banner.innerHTML = 'Day 3 Summary: ' + activeTitleRequests + ' Title Requests | Training Speeds: ' + aggregateSpeeds + 'd'; }
+            if(th) th.innerHTML = '<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>';
+            if(tb) { tb.innerHTML = this.currentEventOverviewData.map(p => { let r = p.player_responses || {}; const user = p.players || { player_name: 'Unknown User' }; const pStr = (user.city_level || '--') + '/' + (user.infantry_tier || '--') + '/' + (user.cavalry_tier || '--') + '/' + (user.archer_tier || '--'); let valOpt = "❌ No"; let valSlots = "--"; let valRes = "--"; if(this.currentMatrixTab === 1 && r.d1_opt_in) { valOpt = "✅ Yes"; valSlots = r.d1_slots?.join(', ') || ''; valRes = '🏗️ ' + r.d1_speeds + 'd Speeds / ' + r.d1_gold + ' Gold / ' + r.d1_tempered + ' Temp'; } if(this.currentMatrixTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = '🔬 ' + r.d2_speeds + 'd Speeds / ' + r.d2_dust + ' Dust'; } if(this.currentMatrixTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = '⚔️ ' + r.d3_speeds + 'd Training'; } return '<tr><td><strong>' + user.player_name + '</strong></td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td>' + valOpt + '</td><td>' + valSlots + '</td><td>' + valRes + '</td></tr>'; }).join(''); }
         } else {
-            if(tabRow) tabRow.classList.add('hidden');
-            if(banner) banner.classList.add('hidden');
-            
-            const bulkBtn = document.getElementById('bulk-save-overview-btn');
-            if(bulkBtn) bulkBtn.classList.remove('hidden');
-            if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
-            
-            if(tb) {
-                tb.innerHTML = this.currentEventOverviewData.map((p, idx) => {
-                    let r = p.player_responses || {};
-                    const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' };
-                    const user = p.players || { player_name: 'Unknown' };
-                    const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
-                    
-                    let avStr = r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed';
-                    if(r.custom_hours) avStr += ` <div style="color:#666; font-style:italic; font-size:11px;">"${r.custom_hours}"</div>`;
-
-                    return `
-                    <tr>
-                        <td><strong>${user.player_name}</strong></td>
-                        <td>${user.current_alliance || '--'}</td>
-                        <td>${pStr}</td>
-                        <td>${avStr}</td>
-                        <td>
-                            <input type="text" id="assign-all-${idx}" value="${a.battle_alliance || ''}" placeholder="Alliance Tag" style="width:90px; padding:4px;">
-                            <select id="assign-role-${idx}" style="width:90px; padding:4px;">
-                                <option value="Rally Lead" ${a.combat_role === 'Rally Lead' ? 'selected' : ''}>Rally Lead</option>
-                                <option value="Joiner" ${a.combat_role === 'Joiner' ? 'selected' : ''}>Joiner</option>
-                                <option value="Reserve" ${a.combat_role === 'Reserve' ? 'selected' : ''}>Reserve</option>
-                            </select>
-                            <input type="hidden" id="assign-pid-${idx}" value="${p.player_id}">
-                        </td>
-                    </tr>`;
-                }).join('');
-            }
+            if(tabRow) tabRow.classList.add('hidden'); if(banner) banner.classList.add('hidden');
+            const bulkBtn = document.getElementById('bulk-save-overview-btn'); if(bulkBtn) bulkBtn.classList.remove('hidden');
+            if(th) th.innerHTML = '<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>';
+            if(tb) { tb.innerHTML = this.currentEventOverviewData.map((p, idx) => { let r = p.player_responses || {}; const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' }; const user = p.players || { player_name: 'Unknown' }; const pStr = (user.city_level || '--') + '/' + (user.infantry_tier || '--') + '/' + (user.cavalry_tier || '--') + '/' + (user.archer_tier || '--'); let avStr = r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'; if(r.custom_hours) avStr += ' <div style="color:#666; font-style:italic; font-size:11px;">"' + r.custom_hours + '"</div>'; return '<tr><td><strong>' + user.player_name + '</strong></td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td>' + avStr + '</td><td><input type="text" id="assign-all-' + idx + '" value="' + (a.battle_alliance || '') + '" placeholder="Alliance Tag" style="width:90px; padding:4px;"><select id="assign-role-' + idx + '" style="width:90px; padding:4px;"><option value="Rally Lead" ' + (a.combat_role === 'Rally Lead' ? 'selected' : '') + '>Rally Lead</option><option value="Joiner" ' + (a.combat_role === 'Joiner' ? 'selected' : '') + '>Joiner</option><option value="Reserve" ' + (a.combat_role === 'Reserve' ? 'selected' : '') + '>Reserve</option></select><input type="hidden" id="assign-pid-' + idx + '" value="' + p.player_id + '"></td></tr>'; }).join(''); }
         }
     }
-
     async saveBulkCombatAssignments() {
-        if(!this.currentFocusedEvent) return;
-        const eventId = this.currentFocusedEvent.event_id;
-        let idx = 0;
-        
-        while(document.getElementById(`assign-pid-${idx}`)) {
-            const pId = parseInt(document.getElementById(`assign-pid-${idx}`).value);
-            const bAll = document.getElementById(`assign-all-${idx}`).value.trim();
-            const cRole = document.getElementById(`assign-role-${idx}`).value;
-
-            await _supabase.from('event_participations').update({
-                r4_assignments: { battle_alliance: bAll, combat_role: cRole }
-            }).eq('event_id', eventId).eq('player_id', pId);
-            
-            idx++;
-        }
-        alert("R4 assignments saved!");
-        await this.displayLatestOverviewUpdate();
+        if(!this.currentFocusedEvent) return; const eventId = this.currentFocusedEvent.event_id; let idx = 0;
+        while(document.getElementById('assign-pid-' + idx)) { const pId = parseInt(document.getElementById('assign-pid-' + idx).value); const bAll = document.getElementById('assign-all-' + idx).value.trim(); const cRole = document.getElementById('assign-role-' + idx).value; await _supabase.from('event_participations').update({ r4_assignments: { battle_alliance: bAll, combat_role: cRole } }).eq('event_id', eventId).eq('player_id', pId); idx++; }
+        alert("R4 assignments saved!"); await this.displayLatestOverviewUpdate();
     }
 }
-
 const app = new AppConfig();
 window.onload = () => app.init();
 </script>
