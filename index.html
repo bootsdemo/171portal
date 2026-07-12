@@ -1,4 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alliance Command Center Matrix</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --panel-dark: #1e293b;
+            --panel-border: #334155;
+            --accent-blue: #3b82f6;
+            --accent-orange: #f97316;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 { margin: 0; font-size: 24px; color: var(--text-main); }
+        
+        .panel {
+            background: var(--panel-dark);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 8px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Forms & Inputs */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0f1317;
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        textarea { height: 100px; resize: vertical; }
+
+        /* Buttons */
+        .btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary { background: #475569; }
+        .btn-danger { background: #ef4444; }
+
+        /* Toggles & Checkboxes */
+        .toggle-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            background: #0f1317;
+            border: 1px solid var(--panel-border);
+            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            user-select: none;
+        }
+        .toggle-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0f1317;
+            padding: 10px;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        /* Matrix Tables */
+        .table-wrapper { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { background: #0f1317; padding: 12px; color: var(--text-muted); font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid var(--panel-border); }
+        tr:hover { background: #243146; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid var(--panel-border); }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #0f1317;
+            border: 1px solid var(--panel-border);
+            border-bottom: none;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            font-size: 13px;
+        }
+        .tab.active { background: var(--panel-dark); font-weight: bold; border-color: var(--accent-blue); }
+
+        .summary-bar {
+            background: #1e293b;
+            border-left: 4px solid var(--accent-orange);
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .badge {
+            background: #334155;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge-admin { background: #7c3aed; color: white; }
+
+        .profile-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .event-container {
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            background: #141c2f;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .event-container-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+    <!-- Supabase JS Client Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>⚔️ Alliance Operation Command Center</h1>
+        <button id="global-logout-btn" class="btn btn-secondary hidden" onclick="app.logout()">Secure Log Out</button>
+    </header>
+
+    <!-- Authentication Panel Entrance Hub -->
+    <div id="login-panel" class="panel" style="max-width: 450px; margin: 60px auto;">
+        <div class="panel-title">System Gateway Authentication</div>
+        <div class="form-group">
+            <label for="login-id">Enter In-Game Roster Player ID</label>
+            <input type="number" id="login-id" placeholder="e.g., 45688219">
+        </div>
+        <button class="btn" style="width: 100%;" onclick="app.login()">Access Matrix System</button>
+    </div>
+
+    <!-- Protected Global Application Workspace Context -->
+    <div id="app-workspace" class="hidden">
+        
+        <!-- Military Profile Section Dashboard -->
+        <div class="panel" id="player-profile-card">
+            <div class="panel-title">
+                <span>Personal Personnel Deployment Roster Profile</span>
+                <button id="profile-action-btn" class="btn btn-secondary" onclick="app.toggleProfileEditMode()">Edit Profile</button>
+            </div>
+            <div style="display: flex; gap: 40px; background: #0f1317; padding: 15px; border-radius: 4px;">
+                <div>System ID Lookup: <span id="display-player-id" style="font-family: monospace; color: var(--accent-orange);">--</span></div>
+                <div>Tactical User Call Sign: <span id="wrapper-player-name">--</span></div>
+                <div>Assigned Battle Alliance: <span id="wrapper-player-alliance">--</span></div>
+            </div>
+            <div class="profile-layout">
+                <div class="form-group">
+                    <label>City Hall Tier Status</label>
+                    <select id="profile-city" disabled>
+                        <option value="TG5">TG5</option><option value="TG6">TG6</option><option value="TG7">TG7</option>
+                        <option value="TG8">TG8</option><option value="TG9">TG9</option><option value="TG10">TG10</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Infantry Military Grade</label>
+                    <select id="profile-inf" disabled>
+                        <option value="TG10">TG10 Basic</option><option value="TG11">TG11 Advanced</option><option value="TG12">TG12 Elite</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cavalry Shock Core Grade</label>
+                    <select id="profile-cav" disabled>
+                        <option value="TG10">TG10 Basic</option><option value="TG11">TG11 Advanced</option><option value="TG12">TG12 Elite</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Archer Artillery Unit Grade</label>
+                    <select id="profile-arch" disabled>
+                        <option value="TG10">TG10 Basic</option><option value="TG11">TG11 Advanced</option><option value="TG12">TG12 Elite</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- R4 High Command Administrator Operations Control Cockpit -->
+        <div class="panel hidden" id="admin-control-cockpit" style="border-color: var(--accent-orange);">
+            <div class="panel-title" style="color: var(--accent-orange);">🚀 R4 Leadership Strategic Control Deck</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <div class="form-group">
+                        <label>Operation Title Definition</label>
+                        <input type="text" id="adm-title" placeholder="e.g., KVK S4 Zenith Run">
+                    </div>
+                    <div class="form-group">
+                        <label>Operation Type Classification</label>
+                        <select id="adm-type" onchange="app.handleAdminTemplatePopulate()">
+                            <option value="kvk_prep">KVK Preparation Node</option>
+                            <option value="kvk_battle">Combat Engagement Grid</option>
+                        </select>
+                    </div>
+                    <button class="btn" style="background: var(--accent-orange);" onclick="app.launchNewOperation()">Deploy New Command Window</button>
+                </div>
+                <div class="form-group">
+                    <label>Mission Directive/Strategic Guidelines (Markdown support)</label>
+                    <textarea id="adm-strategy" placeholder="Log battlefield strategic guidance scripts details here..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Live Operation Activity Target Target Root Hook -->
+        <div id="active-events-root"></div>
+
+    </div>
+</div>
+
 <script>
+// 🛑 REPLACE THESE WITH YOUR EXACT PROJECT ENDPOINT VALUES BEFORE DEPLOYMENT
 const SUPABASE_URL = "https://xuzoznicceskwulsmymq.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1em96bmljY2Vza3d1bHNteW1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDE0NzQsImV4cCI6MjA5OTQxNzQ3NH0.5YCJ2EzXNGK23Sml7rAOHzY9JX5PZnUrjihDUlZpr8c";
 
@@ -28,13 +316,17 @@ class AppConfig {
     }
 
     async init() {
-        let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
-        this.activeEvents = events || [];
-        
-        const savedId = localStorage.getItem('alliance_matrix_player_id');
-        if (savedId) {
-            document.getElementById('login-id').value = savedId;
-            await this.login();
+        try {
+            let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
+            this.activeEvents = events || [];
+            
+            const savedId = localStorage.getItem('alliance_matrix_player_id');
+            if (savedId) {
+                document.getElementById('login-id').value = savedId;
+                await this.login();
+            }
+        } catch (err) {
+            console.error("Initialization failed:", err);
         }
     }
 
@@ -154,7 +446,6 @@ class AppConfig {
         await Promise.all(this.activeEvents.map(async (ev) => {
             let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', ev.event_id);
             
-            // Normalize JSON formats immediately at retrieval phase to prevent template mismatch bugs
             this.eventParticipations[ev.event_id] = (parts || []).map(p => {
                 if (p.player_responses && typeof p.player_responses === 'string') {
                     try { p.player_responses = JSON.parse(p.player_responses); } catch(e) { console.error(e); }
@@ -288,11 +579,13 @@ class AppConfig {
             
             ['d1','d2','d3'].forEach(day => {
                 const grid = document.getElementById(`grid-${eventId}-${day}`);
-                grid.innerHTML = TIME_SLOTS.map((slot, i) => `
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="chk-${eventId}-${day}-${i}" value="${slot}">
-                        <span>${slot}</span>
-                    </div>`).join('');
+                if (grid) {
+                    grid.innerHTML = TIME_SLOTS.map((slot, i) => `
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="chk-${eventId}-${day}-${i}" value="${slot}">
+                            <span>${slot}</span>
+                        </div>`).join('');
+                }
             });
             ['d1','d2','d3'].forEach(day => this.setFormToggleUi(eventId, day, false));
         } else {
@@ -336,6 +629,7 @@ class AppConfig {
 
     populateFormFieldsFromMemory(eventId) {
         const ev = this.activeEvents.find(e => e.event_id === eventId);
+        if (!ev) return;
         
         let targetedPlayerId = this.currentUser.player_id;
         if (this.eventFormStates[eventId] && this.eventFormStates[eventId].targetPlayerId) {
@@ -423,8 +717,8 @@ class AppConfig {
         const isAdmin = this.currentUser.access_level === 'admin';
 
         if(type === 'kvk_prep') {
-            tabRow.classList.remove('hidden');
-            banner.classList.remove('hidden');
+            if(tabRow) tabRow.classList.remove('hidden');
+            if(banner) banner.classList.remove('hidden');
             
             [1,2,3].forEach(d => {
                 const tabEl = document.getElementById(`tab-${eventId}-${d}`);
@@ -440,61 +734,66 @@ class AppConfig {
                 if(currentTab === 3 && r.d3_opt_in) { activeTitleRequests++; aggregateSpeeds += (r.d3_speeds || 0); }
             });
 
-            if(currentTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold: ${resourceAgg}`;
-            if(currentTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
-            if(currentTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
+            if(banner) {
+                if(currentTab === 1) banner.innerHTML = `<strong>Day 1 Summary:</strong> ${activeTitleRequests} Title Requests | Construction Speedups: ${aggregateSpeeds}d | Total True Gold: ${resourceAgg}`;
+                if(currentTab === 2) banner.innerHTML = `<strong>Day 2 Summary:</strong> ${activeTitleRequests} Title Requests | Research Speedups: ${aggregateSpeeds}d | Total Dust Assets: ${resourceAgg}`;
+                if(currentTab === 3) banner.innerHTML = `<strong>Day 3 Summary:</strong> ${activeTitleRequests} Title Requests | Training Speeds: ${aggregateSpeeds}d`;
+            }
 
-            th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
-            tb.innerHTML = dataRows.map(p => {
-                let r = p.player_responses || {};
-                
-                const user = p.players || { player_name: 'Unknown User' };
-                const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
-                
-                let valOpt = "❌ No";
-                let valSlots = "--";
-                let valRes = "--";
-                if(currentTab === 1 && r.d1_opt_in) { valOpt = "✅ Yes"; valSlots = r.d1_slots?.join(', ') || ''; valRes = `🏗️ ${r.d1_speeds}d Speeds / ${r.d1_gold} Gold / ${r.d1_tempered} Temp`; }
-                if(currentTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
-                if(currentTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
+            if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Title Opt-In</th><th>Requested Target Slots</th><th>Resource Metrics</th>`;
+            if(tb) {
+                tb.innerHTML = dataRows.map(p => {
+                    let r = p.player_responses || {};
+                    const user = p.players || { player_name: 'Unknown User' };
+                    const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
+                    
+                    let valOpt = "❌ No";
+                    let valSlots = "--";
+                    let valRes = "--";
+                    if(currentTab === 1 && r.d1_opt_in) { valOpt = "✅ Yes"; valSlots = r.d1_slots?.join(', ') || ''; valRes = `🏗️ ${r.d1_speeds}d Speeds / ${r.d1_gold} Gold / ${r.d1_tempered} Temp`; }
+                    if(currentTab === 2 && r.d2_opt_in) { valOpt = "✅ Yes"; valSlots = r.d2_slots?.join(', ') || ''; valRes = `🔬 ${r.d2_speeds}d Speeds / ${r.d2_dust} Dust`; }
+                    if(currentTab === 3 && r.d3_opt_in) { valOpt = "✅ Yes"; valSlots = r.d3_slots?.join(', ') || ''; valRes = `⚔️ ${r.d3_speeds}d Training`; }
 
-                return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
-            }).join('');
+                    return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${valOpt}</td><td style="font-size:11px; max-width:180px; overflow:hidden; text-overflow:ellipsis;">${valSlots}</td><td>${valRes}</td></tr>`;
+                }).join('');
+            }
         } else {
-            if(isAdmin) document.getElementById(`bulk-save-btn-${eventId}`).classList.remove('hidden');
-            th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
+            const bulkBtn = document.getElementById(`bulk-save-btn-${eventId}`);
+            if(isAdmin && bulkBtn) bulkBtn.classList.remove('hidden');
+            if(th) th.innerHTML = `<th>Player Name</th><th>Alliance Tag</th><th>Profile Stats</th><th>Availability Status Output</th><th>R4 Strategic Deployment Matrix Tags</th>`;
             
-            tb.innerHTML = dataRows.map((p, idx) => {
-                let r = p.player_responses || {};
-                
-                const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' };
-                const user = p.players || { player_name: 'Unknown' };
-                const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
-                
-                let avStr = r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed';
-                if(r.custom_hours) avStr += ` <div style="color:var(--text-muted); font-style:italic; font-size:11px;">"${r.custom_hours}"</div>`;
+            if(tb) {
+                tb.innerHTML = dataRows.map((p, idx) => {
+                    let r = p.player_responses || {};
+                    const a = p.r4_assignments || { battle_alliance: '', combat_role: 'Joiner' };
+                    const user = p.players || { player_name: 'Unknown' };
+                    const pStr = `${user.city_level || '--'}/${user.infantry_tier || '--'}/${user.cavalry_tier || '--'}/${user.archer_tier || '--'}`;
+                    
+                    let avStr = r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed';
+                    if(r.custom_hours) avStr += ` <div style="color:var(--text-muted); font-style:italic; font-size:11px;">"${r.custom_hours}"</div>`;
 
-                if(isAdmin) {
-                    return `
-                    <tr>
-                        <td><strong>${user.player_name}</strong></td>
-                        <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td>
-                        <td><span class="badge">${pStr}</span></td>
-                        <td>${avStr}</td>
-                        <td>
-                            <input type="text" id="assign-all-${eventId}-${idx}" value="${a.battle_alliance || ''}" placeholder="Alliance Tag" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
-                            <select id="assign-role-${eventId}-${idx}" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
-                                <option value="Rally Lead" ${a.combat_role === 'Rally Lead' ? 'selected' : ''}>Rally Lead</option>
-                                <option value="Joiner" ${a.combat_role === 'Joiner' ? 'selected' : ''}>Joiner</option>
-                                <option value="Reserve" ${a.combat_role === 'Reserve' ? 'selected' : ''}>Reserve</option>
-                            </select>
-                            <input type="hidden" id="assign-pid-${eventId}-${idx}" value="${p.player_id}">
-                        </td>
-                    </tr>`;
-                } else {
-                    return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
-                }
-            }).join('');
+                    if(isAdmin) {
+                        return `
+                        <tr>
+                            <td><strong>${user.player_name}</strong></td>
+                            <td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td>
+                            <td><span class="badge">${pStr}</span></td>
+                            <td>${avStr}</td>
+                            <td>
+                                <input type="text" id="assign-all-${eventId}-${idx}" value="${a.battle_alliance || ''}" placeholder="Alliance Tag" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
+                                <select id="assign-role-${eventId}-${idx}" style="width:90px; padding:4px; font-size:11px; display:inline-block;">
+                                    <option value="Rally Lead" ${a.combat_role === 'Rally Lead' ? 'selected' : ''}>Rally Lead</option>
+                                    <option value="Joiner" ${a.combat_role === 'Joiner' ? 'selected' : ''}>Joiner</option>
+                                    <option value="Reserve" ${a.combat_role === 'Reserve' ? 'selected' : ''}>Reserve</option>
+                                </select>
+                                <input type="hidden" id="assign-pid-${eventId}-${idx}" value="${p.player_id}">
+                            </td>
+                        </tr>`;
+                    } else {
+                        return `<tr><td><strong>${user.player_name}</strong></td><td><span class="badge" style="background:#232d37; color:var(--accent-orange);">${user.current_alliance || '--'}</span></td><td><span class="badge">${pStr}</span></td><td>${avStr}</td><td>🚀 Alliance: <span style="color:var(--accent-orange); font-weight:bold;">${a.battle_alliance || 'Unassigned'}</span> | Role: <span class="badge badge-admin">${a.combat_role || 'Joiner'}</span></td></tr>`;
+                    }
+                }).join('');
+            }
         }
     }
 
@@ -538,19 +837,22 @@ class AppConfig {
             responses.custom_hours = document.getElementById(`input-${eventId}-custom-text`)?.value.trim() || '';
         }
 
-        // 🛑 CRITICAL STABILIZATION STEP: Run an explicit look-up query to check for pre-existing rows
-        // This eliminates reliance on the UI state memory array or tricky unique indices.
-        const { data: databaseCheck } = await _supabase
+        // 🛡️ Pre-lookup target rows manually to explicitly circumvent duplicate constraint failures
+        const { data: databaseCheck, error: fetchErr } = await _supabase
             .from('event_participations')
             .select('id')
             .eq('event_id', eventId)
             .eq('player_id', targetedPlayerId)
             .maybeSingle();
 
-        let error = null;
+        if (fetchErr) {
+            console.error("Fetch lookup error:", fetchErr);
+            return alert("Verification lookup error: " + fetchErr.message);
+        }
+
+        let syncError = null;
 
         if (databaseCheck && databaseCheck.id) {
-            // Row exists: Execute explicit safe UPDATE on the primary identifier
             const { error: updateError } = await _supabase
                 .from('event_participations')
                 .update({
@@ -558,9 +860,8 @@ class AppConfig {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', databaseCheck.id);
-            error = updateError;
+            syncError = updateError;
         } else {
-            // Row does not exist: Safe primitive INSERT command
             const { error: insertError } = await _supabase
                 .from('event_participations')
                 .insert({
@@ -569,12 +870,12 @@ class AppConfig {
                     player_responses: responses,
                     updated_at: new Date().toISOString()
                 });
-            error = insertError;
+            syncError = insertError;
         }
 
-        if(error) {
-            console.error("Database Error Diagnosis:", error);
-            alert("Database Transmission Sync Failure: " + error.message);
+        if(syncError) {
+            console.error("Database Error Diagnosis:", syncError);
+            alert("Database Transmission Sync Failure: " + syncError.message);
             return;
         }
 
@@ -632,3 +933,5 @@ class AppConfig {
 const app = new AppConfig();
 window.onload = () => app.init();
 </script>
+</body>
+</html>
