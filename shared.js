@@ -98,6 +98,8 @@ class AppConfig {
 
     renderProfileSectionValues() {
         if (!this.currentUser) return;
+        // Guard: skip if profile elements don't exist on this page (e.g. admin.html)
+        if (!document.getElementById('display-player-id')) return;
         document.getElementById('display-player-id').innerText = this.currentUser.player_id;
 
         if (!this.isEditingProfile) {
