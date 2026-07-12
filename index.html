@@ -193,7 +193,6 @@ class AppConfig {
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
         
-        // Auto-recovery session check if ID exists in local storage
         const savedId = localStorage.getItem('alliance_matrix_player_id');
         if (savedId) {
             document.getElementById('login-id').value = savedId;
@@ -224,7 +223,7 @@ class AppConfig {
             this.handleAdminTemplatePopulate();
         }
 
-        // CRITICAL FIX: Explicitly await the retrieval of database history maps BEFORE rendering fields
+        // Hydrate data mapping arrays cleanly BEFORE executing rendering workflows
         await this.refreshGlobalDataMaps();
     }
 
@@ -315,7 +314,8 @@ class AppConfig {
         let { data: events } = await _supabase.from('events').select('*').eq('is_active', true).order('created_at', { ascending: false });
         this.activeEvents = events || [];
 
-        for (const ev of this.activeEvents) {
+        // FIXED: Execute data fetch requests via Promise.all to map historical records synchronously before moving to render phase
+        await Promise.all(this.activeEvents.map(async (ev) => {
             let { data: parts } = await _supabase.from('event_participations').select('*, players(*)').eq('event_id', ev.event_id);
             this.eventParticipations[ev.event_id] = parts || [];
             
@@ -326,7 +326,8 @@ class AppConfig {
                     targetPlayerId: parseInt(this.currentUser.player_id) 
                 };
             }
-        }
+        }));
+
         this.renderAllActiveEventBlocks();
     }
 
@@ -450,7 +451,6 @@ class AppConfig {
                         <span>${slot}</span>
                     </div>`).join('');
             });
-            // Init layout visibility to false
             ['d1','d2','d3'].forEach(day => this.setFormToggleUi(eventId, day, false));
         } else {
             target.innerHTML = `
@@ -497,8 +497,15 @@ class AppConfig {
         
         const matchRecord = this.eventParticipations[eventId].find(p => parseInt(p.player_id) === parseInt(state.targetPlayerId));
 
+        // Reset UI clean before reading historical data metrics
         if(ev.event_type === 'kvk_prep') {
-            ['d1', 'd2', 'd3'].forEach(d => this.setFormToggleUi(eventId, d, false));
+            ['d1', 'd2', 'd3'].forEach(d => {
+                this.setFormToggleUi(eventId, d, false);
+                TIME_SLOTS.forEach((slot, i) => {
+                    const chk = document.getElementById(`chk-${eventId}-${d}-${i}`);
+                    if(chk) chk.checked = false;
+                });
+            });
         } else {
             this.setCombatStatusUi(eventId, 'needed');
             const ct = document.getElementById(`input-${eventId}-custom-text`);
@@ -700,6 +707,7 @@ class AppConfig {
             updated_at: new Date().toISOString()
         };
 
+        // FIXED: Checked inside our accurately filled arrays to prevent duplications
         const existingRecord = this.eventParticipations[eventId].find(p => parseInt(p.player_id) === targetedPlayerId);
         if (existingRecord && existingRecord.id) {
             finalPayload.id = existingRecord.id; 
