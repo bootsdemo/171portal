@@ -88,6 +88,13 @@
 <script>
 class AdminConfig extends AppConfig {
 
+    // --- Override: skip profile rendering (no profile section on admin page) ---
+
+    renderProfileSectionValues() {
+        // No-op: admin page has no profile section, so skip entirely.
+        // This prevents crashes when shared.js login() calls this method.
+    }
+
     // --- Hook overrides ---
 
     async onLoginSuccess() {
