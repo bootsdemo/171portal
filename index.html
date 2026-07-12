@@ -319,7 +319,7 @@ class AppConfig {
             
             if (this.eventMatrixTabs[ev.event_id] === undefined) this.eventMatrixTabs[ev.event_id] = 1;
             
-            // CRITICAL FIX: Track targetPlayerId explicitly while resetting toggle switches to prevent memory drift
+            // Track targetPlayerId explicitly while resetting toggle switches to prevent memory drift
             if (this.eventFormStates[ev.event_id] === undefined) {
                 this.eventFormStates[ev.event_id] = { 
                     toggles: { d1: false, d2: false, d3: false }, 
@@ -499,19 +499,23 @@ class AppConfig {
         const ev = this.activeEvents.find(e => e.event_id === eventId);
         const state = this.eventFormStates[eventId];
         
-        // CRITICAL FIX: Ensure rigid String parsing to protect logic match execution loops
+        // Secure rigid type checking against database structures
         const matchRecord = this.eventParticipations[eventId].find(p => String(p.player_id) === String(state.targetPlayerId));
 
+        // 1. Reset everything to baseline clean state
         if(ev.event_type === 'kvk_prep') {
             this.setFormToggle(eventId, 'd1', false); 
             this.setFormToggle(eventId, 'd2', false); 
             this.setFormToggle(eventId, 'd3', false);
-            document.getElementById(`input-${eventId}-d1-speeds`).value = '';
-            document.getElementById(`input-${eventId}-d1-gold`).value = '';
-            document.getElementById(`input-${eventId}-d1-tempered`).value = '';
-            document.getElementById(`input-${eventId}-d2-speeds`).value = '';
-            document.getElementById(`input-${eventId}-d2-dust`).value = '';
-            document.getElementById(`input-${eventId}-d3-speeds`).value = '';
+            
+            // Explicitly force clear fields
+            ['d1', 'd2', 'd3'].forEach(d => {
+                const sp = document.getElementById(`input-${eventId}-${d}-speeds`); if(sp) sp.value = '';
+                const gd = document.getElementById(`input-${eventId}-d1-gold`); if(gd) gd.value = '';
+                const tm = document.getElementById(`input-${eventId}-d1-tempered`); if(tm) tm.value = '';
+                const ds = document.getElementById(`input-${eventId}-d2-dust`); if(ds) ds.value = '';
+            });
+
             TIME_SLOTS.forEach((_, i) => {
                 ['d1','d2','d3'].forEach(d => {
                     const el = document.getElementById(`chk-${eventId}-${d}-${i}`);
@@ -520,44 +524,84 @@ class AppConfig {
             });
         } else {
             this.setCombatStatus(eventId, 'needed');
-            document.getElementById(`input-${eventId}-custom-text`).value = '';
+            const ct = document.getElementById(`input-${eventId}-custom-text`);
+            if(ct) ct.value = '';
         }
 
         if(!matchRecord || !matchRecord.player_responses) return;
         const res = matchRecord.player_responses;
 
         if(ev.event_type === 'kvk_prep') {
-            // CRITICAL FIX: Force toggle state activation *prior* to setting element configurations to unhide the elements
+            // Day 1 Hydration Block
             if(res.d1_opt_in) {
-                this.setFormToggle(eventId, 'd1', true);
-                document.getElementById(`input-${eventId}-d1-speeds`).value = res.d1_speeds ?? '';
-                document.getElementById(`input-${eventId}-d1-gold`).value = res.d1_gold ?? '';
-                document.getElementById(`input-${eventId}-d1-tempered`).value = res.d1_tempered ?? '';
+                // FORCE THE DOM UNHIDE MANUALLY FIRST TO AVOID ELEMENT NULL ERRORS
+                this.eventFormStates[eventId].toggles.d1 = true;
+                const yesBtn = document.getElementById(`t-d1-y-${eventId}`);
+                const noBtn = document.getElementById(`t-d1-n-${eventId}`);
+                const fieldsDiv = document.getElementById(`fields-${eventId}-d1`);
+                if(yesBtn) yesBtn.className = "toggle-btn active";
+                if(noBtn) noBtn.className = "toggle-btn";
+                if(fieldsDiv) fieldsDiv.className = ""; // Reveal block instantly
+
+                // Now populate fields safely
+                const targetSpeeds = document.getElementById(`input-${eventId}-d1-speeds`);
+                const targetGold = document.getElementById(`input-${eventId}-d1-gold`);
+                const targetTempered = document.getElementById(`input-${eventId}-d1-tempered`);
+
+                if(targetSpeeds) targetSpeeds.value = res.d1_speeds ?? '';
+                if(targetGold) targetGold.value = res.d1_gold ?? '';
+                if(targetTempered) targetTempered.value = res.d1_tempered ?? '';
+
                 TIME_SLOTS.forEach((slot, i) => { 
                     const chk = document.getElementById(`chk-${eventId}-d1-${i}`);
-                    if(chk) chk.checked = res.d1_slots?.includes(slot) ? true : false;
+                    if(chk) chk.checked = !!(res.d1_slots && res.d1_slots.includes(slot));
                 });
             }
+            
+            // Day 2 Hydration Block
             if(res.d2_opt_in) {
-                this.setFormToggle(eventId, 'd2', true);
-                document.getElementById(`input-${eventId}-d2-speeds`).value = res.d2_speeds ?? '';
-                document.getElementById(`input-${eventId}-d2-dust`).value = res.d2_dust ?? '';
+                this.eventFormStates[eventId].toggles.d2 = true;
+                const yesBtn = document.getElementById(`t-d2-y-${eventId}`);
+                const noBtn = document.getElementById(`t-d2-n-${eventId}`);
+                const fieldsDiv = document.getElementById(`fields-${eventId}-d2`);
+                if(yesBtn) yesBtn.className = "toggle-btn active";
+                if(noBtn) noBtn.className = "toggle-btn";
+                if(fieldsDiv) fieldsDiv.className = "";
+
+                const targetSpeeds = document.getElementById(`input-${eventId}-d2-speeds`);
+                const targetDust = document.getElementById(`input-${eventId}-d2-dust`);
+
+                if(targetSpeeds) targetSpeeds.value = res.d2_speeds ?? '';
+                if(targetDust) targetDust.value = res.d2_dust ?? '';
+
                 TIME_SLOTS.forEach((slot, i) => { 
                     const chk = document.getElementById(`chk-${eventId}-d2-${i}`);
-                    if(chk) chk.checked = res.d2_slots?.includes(slot) ? true : false;
+                    if(chk) chk.checked = !!(res.d2_slots && res.d2_slots.includes(slot));
                 });
             }
+
+            // Day 3 Hydration Block
             if(res.d3_opt_in) {
-                this.setFormToggle(eventId, 'd3', true);
-                document.getElementById(`input-${eventId}-d3-speeds`).value = res.d3_speeds ?? '';
+                this.eventFormStates[eventId].toggles.d3 = true;
+                const yesBtn = document.getElementById(`t-d3-y-${eventId}`);
+                const noBtn = document.getElementById(`t-d3-n-${eventId}`);
+                const fieldsDiv = document.getElementById(`fields-${eventId}-d3`);
+                if(yesBtn) yesBtn.className = "toggle-btn active";
+                if(noBtn) noBtn.className = "toggle-btn";
+                if(fieldsDiv) fieldsDiv.className = "";
+
+                const targetSpeeds = document.getElementById(`input-${eventId}-d3-speeds`);
+                if(targetSpeeds) targetSpeeds.value = res.d3_speeds ?? '';
+
                 TIME_SLOTS.forEach((slot, i) => { 
                     const chk = document.getElementById(`chk-${eventId}-d3-${i}`);
-                    if(chk) chk.checked = res.d3_slots?.includes(slot) ? true : false;
+                    if(chk) chk.checked = !!(res.d3_slots && res.d3_slots.includes(slot));
                 });
             }
         } else {
             this.setCombatStatus(eventId, res.combat_status || 'needed');
-            document.getElementById(`input-${eventId}-custom-text`).value = res.custom_hours || '';
+            const targetCustomText = document.getElementById(`input-${eventId}-custom-text`);
+            if(targetCustomText) targetCustomText.value = res.custom_hours || '';
         }
     }
 
