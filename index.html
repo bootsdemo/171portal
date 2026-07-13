@@ -186,8 +186,8 @@ class PlayerConfig extends AppConfig {
             });
             ['d1','d2','d3'].forEach(day => this.setFormToggleUi(day, false));
         } else {
-            target.innerHTML = '<div class="form-group"><label>Select Deployment Parameters:</label><div class="toggle-group"><div class="toggle-btn" id="bt-need" onclick="app.setCombatStatusUi(\'needed\')">As long as needed</div><div class="toggle-btn" id="bt-cant" onclick="app.setCombatStatusUi(\'cannot\')">Cannot Plan</div></div></div><div class="form-group"><label for="input-custom-text">Custom Hours / Availability Text:</label><textarea id="input-custom-text"></textarea></div>';
-            this.setCombatStatusUi('needed');
+            target.innerHTML = '<div class="form-group"><label>Play time sign up:</label><div class="toggle-group"><div class="toggle-btn" id="bt-full" onclick="app.setCombatStatusUi(\'full\')">Play entire event</div><div class="toggle-btn" id="bt-cant" onclick="app.setCombatStatusUi(\'cannot\')">Can\'t play at all</div><div class="toggle-btn" id="bt-some" onclick="app.setCombatStatusUi(\'some\')">Play some time</div></div></div><div id="fields-some" class="hidden" style="margin-top:10px;"><div class="form-group"><label for="input-custom-text">Enter your available hours / times:</label><textarea id="input-custom-text" placeholder="e.g. I can play from 2pm to 6pm UTC"></textarea></div></div>';
+            this.setCombatStatusUi('full');
         }
     }
 
@@ -201,10 +201,15 @@ class PlayerConfig extends AppConfig {
     }
 
     setCombatStatusUi(status) {
-        const needBtn = document.getElementById('bt-need');
+        const fullBtn = document.getElementById('bt-full');
         const cantBtn = document.getElementById('bt-cant');
-        if (needBtn) { if(status === 'needed') needBtn.classList.add('active'); else needBtn.classList.remove('active'); }
+        const someBtn = document.getElementById('bt-some');
+        const fieldsSome = document.getElementById('fields-some');
+        if (fullBtn) { if(status === 'full') fullBtn.classList.add('active'); else fullBtn.classList.remove('active'); }
         if (cantBtn) { if(status === 'cannot') cantBtn.classList.add('active'); else cantBtn.classList.remove('active'); }
+        if (someBtn) { if(status === 'some') someBtn.classList.add('active'); else someBtn.classList.remove('active'); }
+        // Show free-text area only when "Play some time" is selected
+        if (fieldsSome) fieldsSome.className = (status === 'some') ? '' : 'hidden';
     }
 
 
@@ -234,7 +239,10 @@ class PlayerConfig extends AppConfig {
                 TIME_SLOTS.forEach((slot, i) => { const chk = document.getElementById('chk-d3-' + i); if(chk) chk.checked = !!(res.d3_slots && res.d3_slots.includes(slot)); });
             }
         } else {
-            this.setCombatStatusUi(res.combat_status || 'needed');
+            // Backward compat: old 'needed' maps to 'full'
+            let status = res.combat_status || 'full';
+            if (status === 'needed') status = 'full';
+            this.setCombatStatusUi(status);
             const ct = document.getElementById('input-custom-text');
             if (ct) ct.value = res.custom_hours || '';
         }
@@ -284,11 +292,21 @@ class PlayerConfig extends AppConfig {
                 summaryLines.push('- Day 3 (Cooking): Yes [Speedups: ' + responses.d3_speeds + 'd, Slots Checked: ' + responses.d3_slots.length + ']');
             } else { summaryLines.push('- Day 3 (Cooking): No'); }
         } else {
+            const fullActive = document.getElementById('bt-full')?.classList.contains('active');
             const cantActive = document.getElementById('bt-cant')?.classList.contains('active');
-            responses.combat_status = cantActive ? 'cannot' : 'needed';
-            responses.custom_hours = document.getElementById('input-custom-text')?.value.trim() || '';
-            summaryLines.push('- Deployment Status: ' + (responses.combat_status === 'cannot' ? 'Cannot Plan' : 'As long as needed'));
-            if (responses.custom_hours) summaryLines.push('- Notes: "' + responses.custom_hours + '"');
+            const someActive = document.getElementById('bt-some')?.classList.contains('active');
+            if (cantActive) {
+                responses.combat_status = 'cannot';
+                summaryLines.push('- Play time: Can\'t play at all');
+            } else if (someActive) {
+                responses.combat_status = 'some';
+                responses.custom_hours = document.getElementById('input-custom-text')?.value.trim() || '';
+                summaryLines.push('- Play time: Play some time');
+                if (responses.custom_hours) summaryLines.push('- Available hours: "' + responses.custom_hours + '"');
+            } else {
+                responses.combat_status = 'full';
+                summaryLines.push('- Play time: Play entire event');
+            }
         }
 
         const { data: databaseCheck, error: fetchErr } = await _supabase
