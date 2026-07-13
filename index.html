@@ -28,6 +28,7 @@
         .checkbox-item { display: flex; align-items: center; gap: 5px; color: #3d2b1f; }
         .event-action-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fffdf5; border: 1px solid #c19a3e; margin-bottom: 8px; border-radius: 4px; }
         .closed-banner { background: #f4e4b8; border: 1px solid #c19a3e; color: #6b4a1a; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-weight: bold; font-size: 13px; }
+        .assignment-badge { font-size: 12px; color: #8b6f3a; margin-top: 4px; padding: 3px 8px; background: #ede0c8; border-radius: 3px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -35,13 +36,13 @@
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>171 event planning portal</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a id="admin-link" href="admin.html" class="hidden" style="font-size: 13px; color: #0056b3;">Admin Dashboard →</a>
+            <a id="admin-link" href="admin.html" class="hidden" style="font-size: 13px; color: #8b6f3a;">Admin Dashboard →</a>
             <button id="global-logout-btn" class="btn btn-secondary hidden" onclick="app.logout()">Log Out</button>
         </div>
     </header>
 
     <!-- Login -->
-    <div id="login-panel" style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 4px;">
+    <div id="login-panel" style="max-width: 400px; margin: 40px auto; padding: 20px; border: 1px solid #b89860; border-radius: 4px; background: #f5ecd9;">
         <h3>Login</h3>
         <div class="form-group">
             <label for="login-id">Player ID:</label>
@@ -101,18 +102,29 @@ class PlayerConfig extends AppConfig {
     }
 
     async onEventsLoaded() {
-        this.renderEventList();
+        await this.renderEventList();
     }
 
 
-    // --- Player: event list ---
+    // --- Player: event list (with inline assignment display) ---
 
-    renderEventList() {
+    async renderEventList() {
         const targetNav = document.getElementById('event-navigation-list');
         if (this.eventsList.length === 0) {
             targetNav.innerHTML = '<p style="color:#666; text-align:center;">No events listed.</p>';
             return;
         }
+
+        // Fetch the current player's participations for all events in one query
+        let myParticipations = {};
+        try {
+            const { data: myParts } = await _supabase
+                .from('event_participations')
+                .select('event_id, r4_assignments')
+                .eq('player_id', parseInt(this.currentUser.player_id));
+            (myParts || []).forEach(p => { myParticipations[p.event_id] = p.r4_assignments || {}; });
+        } catch(e) { console.error(e); }
+
         targetNav.innerHTML = this.eventsList.map(ev => {
             const statusLabel = ev.is_active
                 ? '<span style="color:green; font-weight:bold;">[Active]</span>'
@@ -120,7 +132,22 @@ class PlayerConfig extends AppConfig {
             const isOpened = this.currentFocusedEvent && this.currentFocusedEvent.event_id === ev.event_id;
             const buttonText = isOpened ? 'Close Form' : 'View for ' + ev.event_title;
             const clickAction = isOpened ? 'app.closeWorkspaceForm()' : "app.loadFocusedEventWorkspace('" + ev.event_id + "')";
-            return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + '</div><button class="btn btn-secondary" onclick="' + clickAction + '">' + buttonText + '</button></div>';
+
+            // Show assignment inline for battle events
+            let assignmentHtml = '';
+            const isBattle = (ev.event_type === 'kvk_battle' || ev.event_type === 'tyrant_battle');
+            if (isBattle) {
+                const a = myParticipations[ev.event_id];
+                if (a && a.combat_role) {
+                    let assignText = '⚔️ Your role: <strong>' + a.combat_role + '</strong>';
+                    if (ev.event_type === 'kvk_battle' && a.building) {
+                        assignText += ' | 🏰 Building: <strong>' + a.building + '</strong>';
+                    }
+                    assignmentHtml = '<div class="assignment-badge">' + assignText + '</div>';
+                }
+            }
+
+            return '<div class="event-action-item"><div><strong>' + ev.event_title + '</strong> ' + statusLabel + assignmentHtml + '</div><button class="btn btn-secondary" onclick="' + clickAction + '">' + buttonText + '</button></div>';
         }).join('');
     }
 
@@ -150,10 +177,8 @@ class PlayerConfig extends AppConfig {
         const disableAttr = ev.is_active ? '' : 'disabled';
         const submitBtnStyle = ev.is_active ? '' : 'style="display:none;"';
 
-        // Closed-event banner: shows when event is not active, explaining the form is read-only
+        // Closed-event banner
         const closedBanner = ev.is_active ? '' : '<div class="closed-banner">⚠️ This event is closed. You can review your previous submission below but cannot make changes.</div>';
-
-        // If closed and no previous submission, show a different message
         const noSubmissionMsg = (!ev.is_active && !this.currentFocusedUserResponse)
             ? '<div class="closed-banner">⚠️ This event is closed. You did not submit a form for this event.</div>'
             : closedBanner;
@@ -211,7 +236,6 @@ class PlayerConfig extends AppConfig {
         if (fullBtn) { if(status === 'full') fullBtn.classList.add('active'); else fullBtn.classList.remove('active'); }
         if (cantBtn) { if(status === 'cannot') cantBtn.classList.add('active'); else cantBtn.classList.remove('active'); }
         if (someBtn) { if(status === 'some') someBtn.classList.add('active'); else someBtn.classList.remove('active'); }
-        // Show free-text area only when "Play some time" is selected
         if (fieldsSome) fieldsSome.className = (status === 'some') ? '' : 'hidden';
     }
 
