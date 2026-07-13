@@ -245,23 +245,35 @@ class AdminConfig extends AppConfig {
         const type = ev.event_type;
         const isBattleEvent = (type === 'kvk_battle' || type === 'tyrant_battle');
         const isKvkBattle = (type === 'kvk_battle');
+        const isKvkPrep = (type === 'kvk_prep');
 
         const rows = parts.map((p, idx) => {
             const r = p.player_responses || {};
             const user = p.players || { player_name: 'Unknown', player_id: p.player_id };
             const pStr = (user.city_level || '--') + '/' + (user.infantry_tier || '--') + '/' + (user.cavalry_tier || '--') + '/' + (user.archer_tier || '--');
+            const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
+
+            // --- KVK Prep: one column per day, full slot text ---
+            if (isKvkPrep) {
+                let d1Cell = '❌ No', d2Cell = '❌ No', d3Cell = '❌ No';
+                if (r.d1_opt_in) {
+                    const slots = (r.d1_slots || []).join(', ') || 'None selected';
+                    d1Cell = '✅ Yes<br><span style="font-size:11px;">Speeds: ' + (r.d1_speeds || 0) + 'd | Gold: ' + (r.d1_gold || 0) + ' | Tempered: ' + (r.d1_tempered || 0) + '</span><br><span style="font-size:11px; color:#aaa;">Slots: ' + slots + '</span>';
+                }
+                if (r.d2_opt_in) {
+                    const slots = (r.d2_slots || []).join(', ') || 'None selected';
+                    d2Cell = '✅ Yes<br><span style="font-size:11px;">Speeds: ' + (r.d2_speeds || 0) + 'd | Dust: ' + (r.d2_dust || 0) + '</span><br><span style="font-size:11px; color:#aaa;">Slots: ' + slots + '</span>';
+                }
+                if (r.d3_opt_in) {
+                    const slots = (r.d3_slots || []).join(', ') || 'None selected';
+                    d3Cell = '✅ Yes<br><span style="font-size:11px;">Speeds: ' + (r.d3_speeds || 0) + 'd</span><br><span style="font-size:11px; color:#aaa;">Slots: ' + slots + '</span>';
+                }
+                return '<tr><td><strong style="color:#e0e0e0;">' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + d1Cell + '</td><td style="font-size:12px;">' + d2Cell + '</td><td style="font-size:12px;">' + d3Cell + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
+            }
+
+            // --- Battle events ---
             let details = '';
-            if (type === 'kvk_prep') {
-                const lines = [];
-                lines.push('Day 1 (Build): ' + (r.d1_opt_in ? '✅ Yes' : '❌ No'));
-                if (r.d1_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d1_speeds || 0) + 'd | Gold: ' + (r.d1_gold || 0) + ' | Tempered: ' + (r.d1_tempered || 0) + ' | Slots: ' + (r.d1_slots || []).length);
-                lines.push('Day 2 (Research): ' + (r.d2_opt_in ? '✅ Yes' : '❌ No'));
-                if (r.d2_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d2_speeds || 0) + 'd | Dust: ' + (r.d2_dust || 0) + ' | Slots: ' + (r.d2_slots || []).length);
-                lines.push('Day 3 (Cooking): ' + (r.d3_opt_in ? '✅ Yes' : '❌ No'));
-                if (r.d3_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d3_speeds || 0) + 'd | Slots: ' + (r.d3_slots || []).length);
-                details = lines.join('<br>');
-            } else {
-                // Handles kvk_battle and tyrant_battle — three play time states
+            if (type === 'kvk_battle' || type === 'tyrant_battle') {
                 const lines = [];
                 if (r.combat_status === 'cannot') {
                     lines.push('Play time: ❌ Can\'t play at all');
@@ -269,12 +281,10 @@ class AdminConfig extends AppConfig {
                     lines.push('Play time: 🕐 Play some time');
                     if (r.custom_hours) lines.push('Available: "' + r.custom_hours + '"');
                 } else {
-                    // 'full' or legacy 'needed' both mean play entire event
                     lines.push('Play time: ✅ Play entire event');
                 }
                 details = lines.join('<br>');
             }
-            const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
 
             // For battle events, add role and building assignment dropdowns
             if (isBattleEvent) {
@@ -298,11 +308,15 @@ class AdminConfig extends AppConfig {
             return '<tr><td><strong style="color:#e0e0e0;">' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
         }).join('');
 
-        // Build table header and action buttons based on event type
-        let tableHeader = '<tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th>';
-        if (isBattleEvent) {
-            tableHeader += '<th>Role</th>';
+        // Build table header based on event type
+        let tableHeader = '<tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th>';
+        if (isKvkPrep) {
+            tableHeader += '<th>Day 1 (Build)</th><th>Day 2 (Research)</th><th>Day 3 (Cooking)</th>';
+        } else if (isBattleEvent) {
+            tableHeader += '<th>Submitted Details</th><th>Role</th>';
             if (isKvkBattle) tableHeader += '<th>Building</th>';
+        } else {
+            tableHeader += '<th>Submitted Details</th>';
         }
         tableHeader += '<th>Submitted At</th></tr>';
 
