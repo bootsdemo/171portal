@@ -217,15 +217,18 @@ class AdminConfig extends AppConfig {
                 lines.push('Day 3 (Cooking): ' + (r.d3_opt_in ? '✅ Yes' : '❌ No'));
                 if (r.d3_opt_in) lines.push('&nbsp;&nbsp;Speeds: ' + (r.d3_speeds || 0) + 'd | Slots: ' + (r.d3_slots || []).length);
                 details = lines.join('<br>');
-            } else if (type === 'tyrant_battle') {
-                const lines = [];
-                lines.push('Status: ' + (r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'));
-                if (r.custom_hours) lines.push('Notes: "' + r.custom_hours + '"');
-                details = lines.join('<br>');
             } else {
+                // Handles kvk_battle and tyrant_battle — three play time states
                 const lines = [];
-                lines.push('Status: ' + (r.combat_status === 'cannot' ? '❌ Cannot Plan' : '✅ As long as needed'));
-                if (r.custom_hours) lines.push('Notes: "' + r.custom_hours + '"');
+                if (r.combat_status === 'cannot') {
+                    lines.push('Play time: ❌ Can\'t play at all');
+                } else if (r.combat_status === 'some') {
+                    lines.push('Play time: 🕐 Play some time');
+                    if (r.custom_hours) lines.push('Available: "' + r.custom_hours + '"');
+                } else {
+                    // 'full' or legacy 'needed' both mean play entire event
+                    lines.push('Play time: ✅ Play entire event');
+                }
                 details = lines.join('<br>');
             }
             const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
