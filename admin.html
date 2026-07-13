@@ -79,6 +79,15 @@
 
             <!-- Signup display table area -->
             <div id="admin-signup-display" style="margin-top: 20px;"></div>
+
+            <!-- Edit event instruction form -->
+            <div id="admin-instruction-edit" class="hidden" style="margin-top: 20px; padding: 15px; border: 1px solid #3a4055; border-radius: 4px; background: #2d3142;">
+                <h3 style="color:#e0e0e0;">Edit event instruction</h3>
+                <p style="font-size:12px; color:#888; margin-bottom:10px;">HTML is supported. Example: &lt;strong&gt;text&lt;/strong&gt;, &lt;ul&gt;&lt;li&gt;item&lt;/li&gt;&lt;/ul&gt;</p>
+                <div class="form-group"><textarea id="edit-instruction-text" rows="8" placeholder="Enter event instructions (HTML supported)..."></textarea></div>
+                <button class="btn" onclick="app.saveEventInstruction()">Save Instruction</button>
+                <button class="btn btn-secondary" onclick="app.hideEditInstructionForm()">Cancel</button>
+            </div>
         </div>
 
     </div>
@@ -173,7 +182,8 @@ class AdminConfig extends AppConfig {
                 ? '<button class="btn btn-warning" onclick="app.toggleEventStatus(\'' + ev.event_id + '\', false)">Close Event</button>'
                 : '<button class="btn btn-success" onclick="app.toggleEventStatus(\'' + ev.event_id + '\', true)">Activate Event</button>';
             const signupBtn = '<button class="btn btn-secondary" style="margin-left:5px;" onclick="app.viewLatestSignup(\'' + ev.event_id + '\')">View latest sign up</button>';
-            return '<div class="event-action-item"><div><strong style="color:#e0e0e0;">' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div style="display:flex; gap:5px;">' + toggleBtn + signupBtn + '</div></div>';
+            const editInstrBtn = ev.is_active ? '<button class="btn" style="margin-left:5px;" onclick="app.showEditInstructionForm(\'' + ev.event_id + '\')">Edit event instruction</button>' : '';
+            return '<div class="event-action-item"><div><strong style="color:#e0e0e0;">' + ev.event_title + '</strong> ' + statusLabel + '<div style="font-size:11px; color:#888; margin-top:3px;">Type: ' + ev.event_type + '</div></div><div style="display:flex; gap:5px; flex-wrap:wrap;">' + toggleBtn + signupBtn + editInstrBtn + '</div></div>';
         }).join('');
     }
 
@@ -181,6 +191,36 @@ class AdminConfig extends AppConfig {
         const { error } = await _supabase.from('events')
             .update({ is_active: newStatus }).eq('event_id', eventId);
         if (error) return alert("Failed to update event status: " + error.message);
+        await this.loadEvents();
+    }
+
+
+    // --- Admin: edit event instruction ---
+
+    showEditInstructionForm(eventId) {
+        const ev = this.eventsList.find(e => e.event_id === eventId);
+        if (!ev) return;
+        this.currentEditInstructionEventId = eventId;
+        document.getElementById('edit-instruction-text').value = ev.strategy_text || '';
+        document.getElementById('admin-instruction-edit').classList.remove('hidden');
+        document.getElementById('admin-instruction-edit').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    hideEditInstructionForm() {
+        document.getElementById('admin-instruction-edit').classList.add('hidden');
+        document.getElementById('edit-instruction-text').value = '';
+        this.currentEditInstructionEventId = null;
+    }
+
+    async saveEventInstruction() {
+        const eventId = this.currentEditInstructionEventId;
+        if (!eventId) return;
+        const newText = document.getElementById('edit-instruction-text').value;
+        const { error } = await _supabase.from('events')
+            .update({ strategy_text: newText }).eq('event_id', eventId);
+        if (error) return alert("Failed to save instruction: " + error.message);
+        alert("Event instruction updated!");
+        this.hideEditInstructionForm();
         await this.loadEvents();
     }
 
