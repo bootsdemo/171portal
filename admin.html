@@ -243,7 +243,10 @@ class AdminConfig extends AppConfig {
         }
 
         const type = ev.event_type;
-        const rows = parts.map(p => {
+        const isBattleEvent = (type === 'kvk_battle' || type === 'tyrant_battle');
+        const isKvkBattle = (type === 'kvk_battle');
+
+        const rows = parts.map((p, idx) => {
             const r = p.player_responses || {};
             const user = p.players || { player_name: 'Unknown', player_id: p.player_id };
             const pStr = (user.city_level || '--') + '/' + (user.infantry_tier || '--') + '/' + (user.cavalry_tier || '--') + '/' + (user.archer_tier || '--');
@@ -272,16 +275,73 @@ class AdminConfig extends AppConfig {
                 details = lines.join('<br>');
             }
             const updated = p.updated_at ? new Date(p.updated_at).toLocaleString() : '--';
+
+            // For battle events, add role and building assignment dropdowns
+            if (isBattleEvent) {
+                const a = p.r4_assignments || { combat_role: '', building: '' };
+                const roleOptions = ['Rally Lead', 'Rally Joiner'];
+                const roleSelect = '<select id="assign-role-' + idx + '" style="padding:4px; background:#2d3142; color:#e0e0e0; border:1px solid #3a4055; border-radius:3px;">' +
+                    '<option value=""' + (!a.combat_role ? ' selected' : '') + '>--</option>' +
+                    roleOptions.map(opt => '<option value="' + opt + '"' + (a.combat_role === opt ? ' selected' : '') + '>' + opt + '</option>').join('') +
+                    '</select>';
+                let buildingCell = '';
+                if (isKvkBattle) {
+                    const buildingOptions = ['Castle', 'Turret S', 'Turret N', 'Turret E', 'Turret W'];
+                    buildingCell = '<select id="assign-building-' + idx + '" style="padding:4px; background:#2d3142; color:#e0e0e0; border:1px solid #3a4055; border-radius:3px;">' +
+                        '<option value=""' + (!a.building ? ' selected' : '') + '>--</option>' +
+                        buildingOptions.map(opt => '<option value="' + opt + '"' + (a.building === opt ? ' selected' : '') + '>' + opt + '</option>').join('') +
+                        '</select>';
+                }
+                return '<tr><td><strong style="color:#e0e0e0;">' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td>' + roleSelect + '</td>' + (isKvkBattle ? '<td>' + buildingCell + '</td>' : '') + '<td style="font-size:11px; color:#888;">' + updated + '</td><input type="hidden" id="assign-pid-' + idx + '" value="' + p.player_id + '"></tr>';
+            }
+
             return '<tr><td><strong style="color:#e0e0e0;">' + (user.player_name || 'Unknown') + '</strong></td><td>' + (user.player_id || p.player_id) + '</td><td>' + (user.current_alliance || '--') + '</td><td>' + pStr + '</td><td style="font-size:12px;">' + details + '</td><td style="font-size:11px; color:#888;">' + updated + '</td></tr>';
         }).join('');
 
-        display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="font-size:13px; color:#888; margin-bottom:10px;">' + parts.length + ' player(s) have submitted a form.</p><table><thead><tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th><th>Submitted At</th></tr></thead><tbody>' + rows + '</tbody></table><button class="btn btn-secondary" style="margin-top:15px;" onclick="app.closeSignupDisplay()">Close</button>';
+        // Build table header and action buttons based on event type
+        let tableHeader = '<tr><th>Player Name</th><th>Player ID</th><th>Alliance</th><th>Profile Stats</th><th>Submitted Details</th>';
+        if (isBattleEvent) {
+            tableHeader += '<th>Role</th>';
+            if (isKvkBattle) tableHeader += '<th>Building</th>';
+        }
+        tableHeader += '<th>Submitted At</th></tr>';
+
+        let actionButtons = '';
+        if (isBattleEvent) {
+            actionButtons = '<button class="btn btn-success" style="margin-top:15px;" onclick="app.saveAssignments(\'' + ev.event_id + '\')">Save Assignments</button> ';
+        }
+        actionButtons += '<button class="btn btn-secondary" style="margin-top:15px;" onclick="app.closeSignupDisplay()">Close</button>';
+
+        display.innerHTML = '<h3>Latest sign up: ' + ev.event_title + '</h3><p style="font-size:13px; color:#888; margin-bottom:10px;">' + parts.length + ' player(s) have submitted a form.</p><table><thead>' + tableHeader + '</thead><tbody>' + rows + '</tbody></table>' + actionButtons;
         display.scrollIntoView({ behavior: 'smooth' });
     }
 
     closeSignupDisplay() {
         const display = document.getElementById('admin-signup-display');
         if (display) display.innerHTML = '';
+    }
+
+    async saveAssignments(eventId) {
+        let idx = 0;
+        const ev = this.eventsList.find(e => e.event_id === eventId);
+        if (!ev) return;
+        const isKvkBattle = (ev.event_type === 'kvk_battle');
+
+        while (document.getElementById('assign-pid-' + idx)) {
+            const pId = document.getElementById('assign-pid-' + idx).value;
+            const role = document.getElementById('assign-role-' + idx)?.value || '';
+            const building = isKvkBattle ? (document.getElementById('assign-building-' + idx)?.value || '') : '';
+
+            const assignment = { combat_role: role };
+            if (isKvkBattle) assignment.building = building;
+
+            await _supabase.from('event_participations')
+                .update({ r4_assignments: assignment })
+                .eq('event_id', eventId).eq('player_id', pId);
+            idx++;
+        }
+        alert("Assignments saved!");
+        await this.viewLatestSignup(eventId);
     }
 }
 
