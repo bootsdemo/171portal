@@ -158,7 +158,7 @@ class PlayerConfig extends AppConfig {
             ? '<div class="closed-banner">⚠️ This event is closed. You did not submit a form for this event.</div>'
             : closedBanner;
 
-        root.innerHTML = '<div class="event-section" id="workspace-block-' + ev.event_id + '" style="background:#fff; margin-top:20px;"><h2>Event form: ' + ev.event_title + '</h2>' + noSubmissionMsg + '<div style="background:#f0f0f0; padding:10px; border-radius:4px; margin-bottom:15px; white-space:pre-wrap;">' + (ev.strategy_text || 'No strategic information.') + '</div><form onsubmit="app.handleFormSubmit(event)"><fieldset ' + disableAttr + ' style="border:none; padding:0; margin:0;"><div id="form-inner-slots"></div><button type="submit" class="btn" ' + submitBtnStyle + ' style="margin-top:15px;">Submit Response</button></fieldset></form></div>';
+        root.innerHTML = '<div class="event-section" id="workspace-block-' + ev.event_id + '" style="background:#fffdf5; margin-top:20px;"><h2>Event form: ' + ev.event_title + '</h2>' + noSubmissionMsg + '<div style="background:#ede0c8; padding:12px; border-radius:4px; margin-bottom:15px; border-left:4px solid #c19a3e; color:#3d2b1f;">' + (ev.strategy_text || 'No strategic information.') + '</div><form onsubmit="app.handleFormSubmit(event)"><fieldset ' + disableAttr + ' style="border:none; padding:0; margin:0;"><div id="form-inner-slots"></div><button type="submit" class="btn" ' + submitBtnStyle + ' style="margin-top:15px;">Submit Response</button></fieldset></form></div>';
 
         this.buildInnerFormMarkup(ev.event_type);
         this.populateFormFieldsFromMemory(ev.event_type);
